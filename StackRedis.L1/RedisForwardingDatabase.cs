@@ -1,6 +1,7 @@
 ﻿using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Net;
@@ -29,6 +30,12 @@ namespace StackRedis.L1
                 _onCall();
                 return _redisDb.Multiplexer;
             }
+        }
+
+        public long KeyTouch(RedisKey[] keys, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.KeyTouch(keys, flags);
         }
 
         public virtual int Database
@@ -365,6 +372,12 @@ namespace StackRedis.L1
             return _redisDb.HashLengthAsync(key, flags);
         }
 
+        public IAsyncEnumerable<HashEntry> HashScanAsync(RedisKey key, RedisValue pattern = new RedisValue(), int pageSize = 250, long cursor = 0, int pageOffset = 0, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.HashScanAsync(key, pattern, pageSize, cursor, pageOffset, flags);
+        }
+
         public virtual IEnumerable<HashEntry> HashScan(RedisKey key, RedisValue pattern, int pageSize, CommandFlags flags)
         {
 			_onCall();
@@ -392,6 +405,12 @@ namespace StackRedis.L1
             return _redisDb.HashSet(key, hashField, value, when, flags);
         }
 
+        public long HashStringLength(RedisKey key, RedisValue hashField, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.HashStringLength(key, hashField, flags);
+        }
+
         public virtual Task HashSetAsync(RedisKey key, HashEntry[] hashFields, CommandFlags flags = CommandFlags.None)
         {
 			_onCall();
@@ -402,6 +421,12 @@ namespace StackRedis.L1
         {
 			_onCall();
             return _redisDb.HashSetAsync(key, hashField, value, when, flags);
+        }
+
+        public Task<long> HashStringLengthAsync(RedisKey key, RedisValue hashField, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.HashStringLengthAsync(key, hashField, flags);
         }
 
         public virtual RedisValue[] HashValues(RedisKey key, CommandFlags flags = CommandFlags.None)
@@ -741,10 +766,28 @@ namespace StackRedis.L1
             return _redisDb.ListLeftPop(key, flags);
         }
 
+        public RedisValue[] ListLeftPop(RedisKey key, long count, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.ListLeftPop(key, count, flags);
+        }
+
         public virtual Task<RedisValue> ListLeftPopAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
 			_onCall();
             return _redisDb.ListLeftPopAsync(key, flags);
+        }
+
+        public Task<RedisValue[]> ListLeftPopAsync(RedisKey key, long count, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.ListLeftPopAsync(key, count, flags);
+        }
+
+        public long ListLeftPush(RedisKey key, RedisValue[] values, When when = When.Always, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.ListLeftPush(key, values, when, flags);
         }
 
         public virtual long ListLeftPush(RedisKey key, RedisValue[] values, CommandFlags flags = CommandFlags.None)
@@ -757,6 +800,12 @@ namespace StackRedis.L1
         {
 			_onCall();
             return _redisDb.ListLeftPush(key, value, when, flags);
+        }
+
+        public Task<long> ListLeftPushAsync(RedisKey key, RedisValue[] values, When when = When.Always, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.ListLeftPushAsync(key, values, when, flags);
         }
 
         public virtual Task<long> ListLeftPushAsync(RedisKey key, RedisValue[] values, CommandFlags flags = CommandFlags.None)
@@ -813,10 +862,22 @@ namespace StackRedis.L1
             return _redisDb.ListRightPop(key, flags);
         }
 
+        public RedisValue[] ListRightPop(RedisKey key, long count, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.ListRightPop(key, count, flags);
+        }
+
         public virtual Task<RedisValue> ListRightPopAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
 			_onCall();
             return _redisDb.ListRightPopAsync(key, flags);
+        }
+
+        public Task<RedisValue[]> ListRightPopAsync(RedisKey key, long count, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.ListRightPopAsync(key, count, flags);
         }
 
         public virtual RedisValue ListRightPopLeftPush(RedisKey source, RedisKey destination, CommandFlags flags = CommandFlags.None)
@@ -831,6 +892,12 @@ namespace StackRedis.L1
             return _redisDb.ListRightPopLeftPushAsync(source, destination, flags);
         }
 
+        public long ListRightPush(RedisKey key, RedisValue[] values, When when = When.Always, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.ListRightPush(key, values, when, flags);
+        }
+
         public virtual long ListRightPush(RedisKey key, RedisValue[] values, CommandFlags flags = CommandFlags.None)
         {
 			_onCall();
@@ -841,6 +908,12 @@ namespace StackRedis.L1
         {
 			_onCall();
             return _redisDb.ListRightPush(key, value, when, flags);
+        }
+
+        public Task<long> ListRightPushAsync(RedisKey key, RedisValue[] values, When when = When.Always, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.ListRightPushAsync(key, values, when, flags);
         }
 
         public virtual Task<long> ListRightPushAsync(RedisKey key, RedisValue[] values, CommandFlags flags = CommandFlags.None)
@@ -1515,6 +1588,18 @@ namespace StackRedis.L1
             return _redisDb.SortedSetRemoveRangeByValueAsync(key, min, max, exclude, flags);
         }
 
+        public IAsyncEnumerable<RedisValue> SetScanAsync(RedisKey key, RedisValue pattern = new RedisValue(), int pageSize = 250, long cursor = 0, int pageOffset = 0, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.SetScanAsync(key, pattern, pageSize, cursor, pageOffset, flags);
+        }
+
+        public IAsyncEnumerable<SortedSetEntry> SortedSetScanAsync(RedisKey key, RedisValue pattern = new RedisValue(), int pageSize = 250, long cursor = 0, int pageOffset = 0, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.SortedSetScanAsync(key, pattern, pageSize, cursor, pageOffset, flags);
+        }
+
         public virtual IEnumerable<SortedSetEntry> SortedSetScan(RedisKey key, RedisValue pattern, int pageSize, CommandFlags flags)
         {
 			_onCall();
@@ -1599,6 +1684,12 @@ namespace StackRedis.L1
             return _redisDb.StreamCreateConsumerGroup(key, groupName, position, flags);
         }
 
+        public bool StreamCreateConsumerGroup(RedisKey key, RedisValue groupName, RedisValue? position = null, bool createStream = true, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.StreamCreateConsumerGroup(key, groupName, position, createStream, flags);
+        }
+
         public long StreamDelete(RedisKey key, RedisValue[] messageIds, CommandFlags flags = CommandFlags.None)
         {
             _onCall();
@@ -1671,10 +1762,22 @@ namespace StackRedis.L1
             return _redisDb.StreamReadGroup(key, groupName, consumerName, position, count, flags);
         }
 
+        public StreamEntry[] StreamReadGroup(RedisKey key, RedisValue groupName, RedisValue consumerName, RedisValue? position = null, int? count = null, bool noAck = false, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.StreamReadGroup(key, groupName, consumerName, position, count, noAck, flags);
+        }
+
         public RedisStream[] StreamReadGroup(StreamPosition[] streamPositions, RedisValue groupName, RedisValue consumerName, int? countPerStream = null, CommandFlags flags = CommandFlags.None)
         {
             _onCall();
             return _redisDb.StreamReadGroup(streamPositions, groupName, consumerName, countPerStream, flags);
+        }
+
+        public RedisStream[] StreamReadGroup(StreamPosition[] streamPositions, RedisValue groupName, RedisValue consumerName, int? countPerStream = null, bool noAck = false, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.StreamReadGroup(streamPositions, groupName, consumerName, countPerStream, noAck, flags);
         }
 
         public long StreamTrim(RedisKey key, int maxLength, bool useApproximateMaxLength = false, CommandFlags flags = CommandFlags.None)
@@ -1755,6 +1858,12 @@ namespace StackRedis.L1
             return _redisDb.StreamCreateConsumerGroupAsync(key, groupName, position, flags);
         }
 
+        public Task<bool> StreamCreateConsumerGroupAsync(RedisKey key, RedisValue groupName, RedisValue? position = null, bool createStream = true, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.StreamCreateConsumerGroupAsync(key, groupName, position, createStream, flags);
+        }
+
         public Task<long> StreamDeleteAsync(RedisKey key, RedisValue[] messageIds, CommandFlags flags = CommandFlags.None)
         {
             _onCall();
@@ -1827,10 +1936,22 @@ namespace StackRedis.L1
             return _redisDb.StreamReadGroupAsync(key, groupName, consumerName, position, count, flags);
         }
 
+        public Task<StreamEntry[]> StreamReadGroupAsync(RedisKey key, RedisValue groupName, RedisValue consumerName, RedisValue? position = null, int? count = null, bool noAck = false, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.StreamReadGroupAsync(key, groupName, consumerName, position, count, noAck, flags);
+        }
+
         public Task<RedisStream[]> StreamReadGroupAsync(StreamPosition[] streamPositions, RedisValue groupName, RedisValue consumerName, int? countPerStream = null, CommandFlags flags = CommandFlags.None)
         {
             _onCall();
             return _redisDb.StreamReadGroupAsync(streamPositions, groupName, consumerName, countPerStream, flags);
+        }
+
+        public Task<RedisStream[]> StreamReadGroupAsync(StreamPosition[] streamPositions, RedisValue groupName, RedisValue consumerName, int? countPerStream = null, bool noAck = false, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.StreamReadGroupAsync(streamPositions, groupName, consumerName, countPerStream, noAck, flags);
         }
 
         public Task<long> StreamTrimAsync(RedisKey key, int maxLength, bool useApproximateMaxLength = false, CommandFlags flags = CommandFlags.None)
@@ -1989,10 +2110,22 @@ namespace StackRedis.L1
             return _redisDb.StringGetSet(key, value, flags);
         }
 
+        public RedisValue StringGetDelete(RedisKey key, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.StringGetDelete(key, flags);
+        }
+
         public virtual Task<RedisValue> StringGetSetAsync(RedisKey key, RedisValue value, CommandFlags flags = CommandFlags.None)
         {
 			_onCall();
             return _redisDb.StringGetSetAsync(key, value, flags);
+        }
+
+        public Task<RedisValue> StringGetDeleteAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.StringGetDeleteAsync(key, flags);
         }
 
         public virtual RedisValueWithExpiry StringGetWithExpiry(RedisKey key, CommandFlags flags = CommandFlags.None)
@@ -2086,10 +2219,28 @@ namespace StackRedis.L1
             return _redisDb.StringSetRange(key, offset, value, flags);
         }
 
+        public bool KeyTouch(RedisKey key, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.KeyTouch(key, flags);
+        }
+
         public virtual Task<RedisValue> StringSetRangeAsync(RedisKey key, long offset, RedisValue value, CommandFlags flags = CommandFlags.None)
         {
 			_onCall();
             return _redisDb.StringSetRangeAsync(key, offset, value, flags);
+        }
+
+        public Task<bool> KeyTouchAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.KeyTouchAsync(key, flags);
+        }
+
+        public Task<long> KeyTouchAsync(RedisKey[] keys, CommandFlags flags = CommandFlags.None)
+        {
+            _onCall();
+            return _redisDb.KeyTouchAsync(keys, flags);
         }
 
         public virtual bool TryWait(Task task)
