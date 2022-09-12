@@ -145,7 +145,7 @@ namespace StackRedis.L1.MemoryCache.Types
                 result[originalIndex] = redisResult;
 
                 //Cache this key for next time
-                hash.Add(keys[originalIndex], redisResult);
+                hash[keys[originalIndex]] = redisResult;  // MAJAKO_CHANGE use indexing instead of Add
             }
 
             return result;
