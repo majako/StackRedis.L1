@@ -140,7 +140,7 @@ namespace StackRedis.L1.KeyspaceNotifications
             else if (eventName == "expire")
             {
                 //The TTL has changed - clear it in memory
-                dbData.MemoryCache.ClearTimeToLive(key);
+                dbData.MemoryCache.Expire(key);
             }
             else if (eventName == "rename_key")
             {
