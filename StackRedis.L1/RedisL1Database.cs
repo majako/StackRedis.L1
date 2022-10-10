@@ -581,13 +581,15 @@ namespace StackRedis.L1
         public Task<long> KeyDeleteAsync(RedisKey[] keys, CommandFlags flags = CommandFlags.None)
         {
             var removed = _dbData.MemoryCache.Remove(keys.Select(k => (string)k).ToArray());
-            return _redisDb == null ? Task.FromResult(removed) : _redisDb.KeyDeleteAsync(keys, flags);
+            _ = _redisDb?.KeyDeleteAsync(keys, flags);
+            return Task.FromResult(removed);
         }
 
         public Task<bool> KeyDeleteAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
             var result = _dbData.MemoryCache.Remove(new[] { (string)key });
-            return _redisDb == null ? Task.FromResult(result > 0) : _redisDb.KeyDeleteAsync(key, flags);
+            _ = _redisDb?.KeyDeleteAsync(key, flags);
+            return Task.FromResult(result > 0);
         }
 
         public byte[] KeyDump(RedisKey key, CommandFlags flags = CommandFlags.None)
@@ -604,10 +606,8 @@ namespace StackRedis.L1
 
         public bool KeyExists(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
-            if (_dbData.MemoryCache.ContainsKey(key)) return true;
-
-            //We need to check redis since we don't know what we *don't* have
-            return _redisDb != null && _redisDb.KeyExists(key, flags);
+            return _dbData.MemoryCache.ContainsKey(key)
+                || _redisDb?.KeyExists(key, flags) == true; //We need to check redis since we don't know what we *don't* have
         }
 
         public long KeyExists(RedisKey[] keys, CommandFlags flags = CommandFlags.None)
@@ -618,13 +618,8 @@ namespace StackRedis.L1
 
         public async Task<bool> KeyExistsAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
-            if (_dbData.MemoryCache.ContainsKey(key)) return true;
-
-            //There's no redis so we know assume the key doesn't exist in memory
-            if (_redisDb == null) return false;
-
-            //We need to check redis since we don't know what we *don't* have
-            return await _redisDb.KeyExistsAsync(key, flags);
+            return _dbData.MemoryCache.ContainsKey(key)
+                || _redisDb != null && await _redisDb.KeyExistsAsync(key, flags);
         }
 
         public Task<long> KeyExistsAsync(RedisKey[] keys, CommandFlags flags = CommandFlags.None)
@@ -653,8 +648,8 @@ namespace StackRedis.L1
 
         public Task<bool> KeyExpireAsync(RedisKey key, DateTime? expiry, CommandFlags flags = CommandFlags.None)
         {
-            var result = _dbData.MemoryCache.Expire(key, expiry);
-            return _redisDb != null ? _redisDb.KeyExpireAsync(key, expiry, flags) : Task.FromResult(result);
+            _ = _redisDb?.KeyExpireAsync(key, expiry, flags);
+            return Task.FromResult(_dbData.MemoryCache.Expire(key, expiry));
         }
 
         public Task<TimeSpan?> KeyIdleTimeAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
@@ -665,8 +660,8 @@ namespace StackRedis.L1
 
         public Task<bool> KeyExpireAsync(RedisKey key, TimeSpan? expiry, CommandFlags flags = CommandFlags.None)
         {
-            var result = _dbData.MemoryCache.Expire(key, expiry);
-            return _redisDb != null ? _redisDb.KeyExpireAsync(key, expiry, flags) : Task.FromResult(result);
+            _ = _redisDb?.KeyExpireAsync(key, expiry, flags);
+            return Task.FromResult(_dbData.MemoryCache.Expire(key, expiry));
         }
 
         public void KeyMigrate(RedisKey key, EndPoint toServer, int toDatabase = 0, int timeoutMilliseconds = 0, MigrateOptions migrateOptions = MigrateOptions.None, CommandFlags flags = CommandFlags.None)
@@ -681,7 +676,7 @@ namespace StackRedis.L1
 
         public bool KeyMove(RedisKey key, int database, CommandFlags flags = CommandFlags.None)
         {
-            return _redisDb == null || _redisDb.KeyMove(key, database, flags);
+            return _redisDb?.KeyMove(key, database, flags) != false;
         }
 
         public Task<bool> KeyMoveAsync(RedisKey key, int database, CommandFlags flags = CommandFlags.None)
@@ -719,14 +714,13 @@ namespace StackRedis.L1
             return _redisDb?.KeyRename(key, newKey, when, flags) ?? result;
         }
 
-        public async Task<bool> KeyRenameAsync(RedisKey key, RedisKey newKey, When when = When.Always, CommandFlags flags = CommandFlags.None)
+        public Task<bool> KeyRenameAsync(RedisKey key, RedisKey newKey, When when = When.Always, CommandFlags flags = CommandFlags.None)
         {
-            var result = _dbData.MemoryCache.RenameKey(key, newKey);
-            if (_redisDb == null) return result;
-            return await _redisDb.KeyRenameAsync(key, newKey, when, flags).ConfigureAwait(false);
+            _ = _redisDb?.KeyRenameAsync(key, newKey, when, flags).ConfigureAwait(false);
+            return Task.FromResult(_dbData.MemoryCache.RenameKey(key, newKey));
         }
         
-        public void KeyRestore(RedisKey key, byte[] value, TimeSpan? expiry = default(TimeSpan?), CommandFlags flags = CommandFlags.None)
+        public void KeyRestore(RedisKey key, byte[] value, TimeSpan? expiry = default, CommandFlags flags = CommandFlags.None)
         {
             if (_redisDb == null) throw new NotImplementedException();
             _redisDb.KeyRestore(key, value, expiry, flags);
@@ -1762,9 +1756,10 @@ namespace StackRedis.L1
         {
             if (_redisDb == null) throw new NotImplementedException();
 
-            _dbData.MemoryCache.Remove(new[] { (string)key }); //Invalidate the whole in-memory set because we can't update it properly
+            _ = _redisDb.SortedSetRemoveRangeByRankAsync(key, start, stop, flags);
 
-            return _redisDb.SortedSetRemoveRangeByRankAsync(key, start, stop, flags);
+            //Invalidate the whole in-memory set because we can't update it properly
+            return Task.FromResult(_dbData.MemoryCache.Remove(new[] { (string)key }));
         }
 
         public long SortedSetRemoveRangeByScore(RedisKey key, double start, double stop, Exclude exclude = Exclude.None, CommandFlags flags = CommandFlags.None)
@@ -1815,7 +1810,7 @@ namespace StackRedis.L1
             }
         }
 
-        public IEnumerable<SortedSetEntry> SortedSetScan(RedisKey key, RedisValue pattern = default(RedisValue), int pageSize = 10, long cursor = 0, int pageOffset = 0, CommandFlags flags = CommandFlags.None)
+        public IEnumerable<SortedSetEntry> SortedSetScan(RedisKey key, RedisValue pattern = default, int pageSize = 10, long cursor = 0, int pageOffset = 0, CommandFlags flags = CommandFlags.None)
         {
             if (_redisDb == null) throw new NotImplementedException();
 
@@ -2378,7 +2373,9 @@ namespace StackRedis.L1
         /// </summary>
         public async Task<RedisValue> StringGetAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
-            return await _dbData.MemoryStrings.GetFromMemoryAsync(key, () => _redisDb == null ? Task.FromResult(new RedisValue()) : _redisDb.StringGetAsync(key, flags)).ConfigureAwait(false);
+            return await _dbData.MemoryStrings.GetFromMemoryAsync(
+                key, () => _redisDb == null ? Task.FromResult(new RedisValue()) : _redisDb.StringGetAsync(key, flags)
+            ).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -3362,7 +3359,9 @@ namespace StackRedis.L1
 
         public Task<bool> StringSetAsync(RedisKey key, RedisValue value, TimeSpan? expiry, When when)
         {
-            return _redisDb.StringSetAsync(key, value, expiry, when);
+            _dbData.MemoryCache.Add(key, value, expiry, when);
+            _ = _redisDb.StringSetAsync(key, value, expiry, when);
+            return Task.FromResult(true);
         }
     }
 }

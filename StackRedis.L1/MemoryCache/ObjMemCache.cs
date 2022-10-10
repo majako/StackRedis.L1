@@ -39,10 +39,10 @@ namespace StackRedis.L1.MemoryCache
             if (!ContainsKey(key)) return;
             var expiry = GetExpiry(key);
             var expiryTimespan = expiry.HasValue ? expiry.Value : null;
-            AddSingle(key, o, expiryTimespan, When.Always);
+            Add(key, o, expiryTimespan, When.Always);
         }
 
-        private void AddSingle<T>(string key, T value, TimeSpan? expiry, When when)
+        public void Add<T>(string key, T value, TimeSpan? expiry, When when)
         {
             if (_cache == null) return;
 
@@ -55,15 +55,10 @@ namespace StackRedis.L1.MemoryCache
             _cache.Set(key, new Entry<T>(value, absoluteExpiration), new MemoryCacheEntryOptions { AbsoluteExpiration = absoluteExpiration});
         }
 
-        public void Add(string key, object o, TimeSpan? expiry, When when)
-        {
-            AddSingle(key, o, expiry, when);
-        }
-
         public void Add(IEnumerable<KeyValuePair<RedisKey, RedisValue>> items, TimeSpan? expiry, When when)
         {
             foreach (var item in items)
-                AddSingle(item.Key, item.Value, expiry, when);
+                Add(item.Key, item.Value, expiry, when);
         }
 
         public ValOrRefNullable<T> Get<T>(string key)

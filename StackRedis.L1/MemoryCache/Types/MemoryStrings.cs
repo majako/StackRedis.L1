@@ -150,13 +150,9 @@ namespace StackRedis.L1.MemoryCache.Types
             {
                 var cachedItem = _memCache.Get<RedisValue>(keys[i]);
                 if (cachedItem.HasValue)
-                {
                     result[i] = cachedItem.Value;
-                }
                 else
-                {
                     nonCachedIndices.Add(i);
-                }
             }
 
             //Get all non cached indices from redis and place them in their correct positions for the result array
