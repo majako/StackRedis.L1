@@ -1,12 +1,12 @@
-﻿using StackExchange.Redis;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Net;
-using System.Net.NetworkInformation;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Threading.Tasks;
+using StackExchange.Redis;
 
 namespace StackRedis.L1.Notifications
 {
@@ -19,15 +19,15 @@ namespace StackRedis.L1.Notifications
         private readonly ISubscriber _sub;
         private readonly string _channelDb;
         private readonly string _process;
-        
+
         public NotificationDatabase(IDatabase redisDb, string processId = null)
         {
-            _redisDb = redisDb ?? throw new ArgumentException();
+            _redisDb = redisDb ?? throw new ArgumentNullException(nameof(redisDb));
             _sub = redisDb.Multiplexer.GetSubscriber();
             _channelDb = "__keyspace_detailed@" + redisDb.Database + "__:";
             _process = processId ?? ProcessId.GetCurrent();
         }
-        
+
         private void PublishEvent(string key, string keyMessage)
         {
             var channel = _channelDb + key;
@@ -1039,7 +1039,7 @@ namespace StackRedis.L1.Notifications
         public RedisValue SetPop(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
             var result = _redisDb.SetPop(key, flags);
-            if(!result.IsNull)
+            if (!result.IsNull)
             {
                 PublishEvent(key, "srem:" + RedisValueHashCode.GetStableHashCode(result));
             }
@@ -1050,7 +1050,7 @@ namespace StackRedis.L1.Notifications
         public RedisValue[] SetPop(RedisKey key, long count, CommandFlags flags = CommandFlags.None)
         {
             var results = _redisDb.SetPop(key, count, flags);
-            foreach(var result in results)
+            foreach (var result in results)
             {
                 PublishEvent(key, "srem:" + RedisValueHashCode.GetStableHashCode(result));
             }
@@ -1413,7 +1413,7 @@ namespace StackRedis.L1.Notifications
         {
             var result = _redisDb.SortedSetRemoveRangeByRank(key, start, stop, flags);
 
-            if(result > 0)
+            if (result > 0)
             {
                 PublishEvent(key, $"zremrangebyrank:{start}-{stop}");
             }
@@ -1437,7 +1437,7 @@ namespace StackRedis.L1.Notifications
         {
             var result = _redisDb.SortedSetRemoveRangeByScore(key, start, stop, exclude, flags);
 
-            if(result > 0)
+            if (result > 0)
             {
                 PublishEvent(key, $"zremrangebyscore:{start}-{stop}-{(int)exclude}");
             }
@@ -1944,13 +1944,13 @@ namespace StackRedis.L1.Notifications
 
         public bool StringSet(RedisKey key, RedisValue value, TimeSpan? expiry = default(TimeSpan?), When when = When.Always, CommandFlags flags = CommandFlags.None)
         {
-            PublishEvent(key, "set");   
+            PublishEvent(key, "set");
             return _redisDb.StringSet(key, value, expiry, when, flags);
         }
 
         public Task<bool> StringSetAsync(KeyValuePair<RedisKey, RedisValue>[] values, When when = When.Always, CommandFlags flags = CommandFlags.None)
         {
-            foreach(var kvp in values)
+            foreach (var kvp in values)
             {
                 PublishEvent(kvp.Key, "set");
             }
@@ -1994,7 +1994,7 @@ namespace StackRedis.L1.Notifications
         }
 
         public void Wait(Task task)
-        {   
+        {
             _redisDb.Wait(task);
         }
 
@@ -2030,7 +2030,7 @@ namespace StackRedis.L1.Notifications
 
         public long ListRightPush(RedisKey key, RedisValue[] values, When when = When.Always, CommandFlags flags = CommandFlags.None)
         {
-            return _redisDb.ListRightPush(key, values, when, flags);  
+            return _redisDb.ListRightPush(key, values, when, flags);
         }
 
         public long SortedSetRangeAndStore(RedisKey sourceKey, RedisKey destinationKey, RedisValue start, RedisValue stop, SortedSetOrder sortedSetOrder = SortedSetOrder.ByRank, Exclude exclude = Exclude.None, Order order = Order.Ascending, long skip = 0, long? take = null, CommandFlags flags = CommandFlags.None)
@@ -2099,7 +2099,7 @@ namespace StackRedis.L1.Notifications
 
         public IAsyncEnumerable<HashEntry> HashScanAsync(RedisKey key, RedisValue pattern = default, int pageSize = 250, long cursor = 0, int pageOffset = 0, CommandFlags flags = CommandFlags.None)
         {
-            return _redisDb.HashScanAsync(key, pattern, pageSize, cursor, pageOffset, flags);   
+            return _redisDb.HashScanAsync(key, pattern, pageSize, cursor, pageOffset, flags);
         }
 
         public Task<long> HashStringLengthAsync(RedisKey key, RedisValue hashField, CommandFlags flags = CommandFlags.None)

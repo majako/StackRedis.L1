@@ -68,7 +68,7 @@ namespace StackRedis.L1.MemoryCache.Types
 
         internal RedisValue[] GetMulti(string hashKey, RedisValue[] keys, Func<RedisValue[], RedisValue[]> retrieval)
         {
-            if (!keys.Any()) return new RedisValue[0];
+            if (!keys.Any()) return Array.Empty<RedisValue>();
 
             //Get the in-memory hash
             var hash = GetHash(hashKey) ?? SetHash(hashKey);
@@ -106,7 +106,7 @@ namespace StackRedis.L1.MemoryCache.Types
 
         internal async Task<RedisValue[]> GetMultiAsync(string hashKey, RedisValue[] keys, Func<RedisValue[], Task<RedisValue[]>> retrieval)
         {
-            if (!keys.Any()) return new RedisValue[0];
+            if (!keys.Any()) return Array.Empty<RedisValue>();
 
             //Get the in-memory hash
             var hash = GetHash(hashKey) ?? SetHash(hashKey);
@@ -129,14 +129,11 @@ namespace StackRedis.L1.MemoryCache.Types
             var redisResults = await retrieval(nonCachedKeys).ConfigureAwait(false);
             if (redisResults == null) return result;
 
-            var j = 0;
-            foreach (var redisResult in redisResults)
+            foreach (var (redisResult, originalIndex) in redisResults.Zip(nonCachedIndices))
             {
-                var originalIndex = nonCachedIndices[j++];
                 result[originalIndex] = redisResult;
-
                 //Cache this key for next time
-                hash[keys[originalIndex]] = redisResult;  // MAJAKO_CHANGE use indexing instead of Add
+                hash[keys[originalIndex]] = redisResult;
             }
 
             return result;
@@ -213,14 +210,7 @@ namespace StackRedis.L1.MemoryCache.Types
         private ConcurrentDictionary<string,RedisValue> GetHash(string hashKey)
         {
             var result = _objMemCache.Get<ConcurrentDictionary<string, RedisValue>>(hashKey);
-            if(result.HasValue)
-            {
-                return result.Value;
-            }
-            else
-            {
-                return null;
-            }
+            return result.HasValue ? result.Value : null;
         }
     }
 }

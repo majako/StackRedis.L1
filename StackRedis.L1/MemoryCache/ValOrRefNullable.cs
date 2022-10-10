@@ -1,20 +1,17 @@
-﻿using StackExchange.Redis;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System;
 using System.Threading.Tasks;
 
 namespace StackRedis.L1.MemoryCache
 {
-    internal class ValOrRefNullable<T>
+    internal struct ValOrRefNullable<T>
     {
-        public bool HasValue { get; private set; }
-        public T Value { get; private set; }
+        public readonly bool HasValue;
+        public readonly T Value;
 
         public ValOrRefNullable()
         {
             HasValue = false;
+            Value = default;
         }
 
         public ValOrRefNullable(T value)

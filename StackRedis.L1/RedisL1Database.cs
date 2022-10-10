@@ -2,11 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Net;
-using StackRedis.L1.MemoryCache;
-using StackRedis.L1.MemoryCache.Types;
 using StackRedis.L1.KeyspaceNotifications;
 using StackRedis.L1.Notifications;
 
@@ -329,7 +326,10 @@ namespace StackRedis.L1
 
         public Task<RedisValue[]> HashGetAsync(RedisKey key, RedisValue[] hashFields, CommandFlags flags = CommandFlags.None)
         {
-            return _dbData.MemoryHashes.GetMultiAsync(key, hashFields, missingKeys => Task.FromResult(_redisDb != null ? _redisDb.HashGet(key, missingKeys, flags) : new RedisValue[0]));
+            return _dbData.MemoryHashes.GetMultiAsync(
+                key,
+                hashFields,
+                missingKeys => _redisDb?.HashGetAsync(key, missingKeys, flags) ?? Task.FromResult(Array.Empty<RedisValue>()));
         }
 
         public Task<RedisValue> HashGetAsync(RedisKey key, RedisValue hashField, CommandFlags flags = CommandFlags.None)

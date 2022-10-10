@@ -18,7 +18,7 @@ namespace StackRedis.L1
 
         public RedisForwardingDatabase(IDatabase redisDb, Action onCall = null)
         {
-            _redisDb = redisDb ?? throw new ArgumentException();
+            _redisDb = redisDb ?? throw new ArgumentNullException(nameof(redisDb));
             _onCall = onCall ?? (() => { });
         }
 
