@@ -1,8 +1,8 @@
 ﻿using StackExchange.Redis;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace StackRedis.L1.MemoryCache.Types
@@ -25,8 +25,7 @@ namespace StackRedis.L1.MemoryCache.Types
             var hashEntries = retrieval();
 
             //Empty existing keys
-            var hash = GetHash(hashKey);
-            hash?.Clear();
+            GetHash(hashKey)?.Clear();
 
             //Save all the new values
             Set(hashKey, hashEntries);
@@ -69,7 +68,7 @@ namespace StackRedis.L1.MemoryCache.Types
 
         internal RedisValue[] GetMulti(string hashKey, RedisValue[] keys, Func<RedisValue[], RedisValue[]> retrieval)
         {
-            if (!keys.Any()) return new RedisValue[0];
+            if (!keys.Any()) return Array.Empty<RedisValue>();
 
             //Get the in-memory hash
             var hash = GetHash(hashKey) ?? SetHash(hashKey);
@@ -80,13 +79,9 @@ namespace StackRedis.L1.MemoryCache.Types
             for (var i = 0; i < keys.Length; i++)
             {
                 if (hash.ContainsKey(keys[i]))
-                {
                     result[i] = hash[keys[i]];
-                }
                 else
-                {
                     nonCachedIndices.Add(i);
-                }
             }
 
             //Get all non cached indices from redis and place them in their correct positions for the result array
@@ -103,7 +98,7 @@ namespace StackRedis.L1.MemoryCache.Types
                 result[originalIndex] = redisResult;
 
                 //Cache this key for next time
-                hash.Add(keys[originalIndex], redisResult);
+                hash.TryAdd(keys[originalIndex], redisResult);
             }
 
             return result;
@@ -111,7 +106,7 @@ namespace StackRedis.L1.MemoryCache.Types
 
         internal async Task<RedisValue[]> GetMultiAsync(string hashKey, RedisValue[] keys, Func<RedisValue[], Task<RedisValue[]>> retrieval)
         {
-            if (!keys.Any()) return new RedisValue[0];
+            if (!keys.Any()) return Array.Empty<RedisValue>();
 
             //Get the in-memory hash
             var hash = GetHash(hashKey) ?? SetHash(hashKey);
@@ -121,14 +116,10 @@ namespace StackRedis.L1.MemoryCache.Types
 
             for (var i = 0; i < keys.Length; i++)
             {
-                if (hash.ContainsKey(keys[i]))
-                {
-                    result[i] = hash[keys[i]];
-                }
+                if (hash.TryGetValue(keys[i], out var value))
+                    result[i] = value;
                 else
-                {
                     nonCachedIndices.Add(i);
-                }
             }
 
             //Get all non cached indices from redis and place them in their correct positions for the result array
@@ -138,14 +129,11 @@ namespace StackRedis.L1.MemoryCache.Types
             var redisResults = await retrieval(nonCachedKeys).ConfigureAwait(false);
             if (redisResults == null) return result;
 
-            var j = 0;
-            foreach (var redisResult in redisResults)
+            foreach (var (redisResult, originalIndex) in redisResults.Zip(nonCachedIndices))
             {
-                var originalIndex = nonCachedIndices[j++];
                 result[originalIndex] = redisResult;
-
                 //Cache this key for next time
-                hash[keys[originalIndex]] = redisResult;  // MAJAKO_CHANGE use indexing instead of Add
+                hash[keys[originalIndex]] = redisResult;
             }
 
             return result;
@@ -153,22 +141,14 @@ namespace StackRedis.L1.MemoryCache.Types
 
         internal bool Contains(string hashKey, string key)
         {
-            var hash = GetHash(hashKey);
-            if (hash != null)
-                return hash.ContainsKey(key);
-            else
-                return false;
+            return GetHash(hashKey)?.ContainsKey(key) == true;
         }
 
         internal RedisValue Get(string hashKey, string key)
         {
-            var hash = GetHash(hashKey);
-            if (hash != null && hash.ContainsKey(key))
-            {
-                return hash[key];
-            }
-
-            return new RedisValue();
+            return GetHash(hashKey)?.TryGetValue(key, out var value) == true
+                ? value
+                : new RedisValue();
         }
         
         internal long Set(string hashKey, HashEntry[] hashEntries, When when = When.Always)
@@ -178,21 +158,27 @@ namespace StackRedis.L1.MemoryCache.Types
             if (hash == null)
                 hash = SetHash(hashKey);
             
-            foreach (HashEntry entry in hashEntries)
+            foreach (var entry in hashEntries)
             {
-                if (when ==  When.Always || (hash.ContainsKey(entry.Name) && when == When.Exists))
+                switch (when)
                 {
-                    hash.Remove(entry.Name);
-
-                    //Add the key
-                    hash.Add(entry.Name, entry.Value);
-                    result++;
-                }
-                else if(!hash.ContainsKey(entry.Name) && when == When.NotExists)
-                {
-                    //Add the key
-                    hash.Add(entry.Name, entry.Value);
-                    result++;
+                    case When.Always:
+                        hash[entry.Name] = entry.Value;
+                        result++;
+                        break;
+                    case When.Exists:
+                        if (hash.ContainsKey(entry.Name))
+                        {
+                            hash[entry.Name] = entry.Value;
+                            result++;
+                        }
+                        break;
+                    case When.NotExists:
+                        hash.TryAdd(entry.Name, entry.Value);
+                        result++;
+                        break;
+                    default:
+                        break;
                 }
             }
 
@@ -205,33 +191,26 @@ namespace StackRedis.L1.MemoryCache.Types
             var hash = GetHash(hashKey);
             if (hash != null)
             {
-                foreach (RedisValue key in keys)
+                foreach (var key in keys)
                 {
-                    if (hash.Remove(key))
+                    if (hash.TryRemove(key, out _))
                         result++;
                 }
             }
             return result;
         }
 
-        private Dictionary<string,RedisValue> SetHash(string hashKey)
+        private ConcurrentDictionary<string,RedisValue> SetHash(string hashKey)
         {
-            var hash = new Dictionary<string, RedisValue>();
+            var hash = new ConcurrentDictionary<string, RedisValue>();
             _objMemCache.Add(hashKey, hash, null, When.Always);
             return hash;
         }
 
-        private Dictionary<string,RedisValue> GetHash(string hashKey)
+        private ConcurrentDictionary<string,RedisValue> GetHash(string hashKey)
         {
-            var result = _objMemCache.Get<Dictionary<string, RedisValue>>(hashKey);
-            if(result.HasValue)
-            {
-                return result.Value;
-            }
-            else
-            {
-                return null;
-            }
+            var result = _objMemCache.Get<ConcurrentDictionary<string, RedisValue>>(hashKey);
+            return result.HasValue ? result.Value : null;
         }
     }
 }

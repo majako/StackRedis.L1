@@ -2,11 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Net;
-using StackRedis.L1.MemoryCache;
-using StackRedis.L1.MemoryCache.Types;
 using StackRedis.L1.KeyspaceNotifications;
 using StackRedis.L1.Notifications;
 
@@ -329,7 +326,10 @@ namespace StackRedis.L1
 
         public Task<RedisValue[]> HashGetAsync(RedisKey key, RedisValue[] hashFields, CommandFlags flags = CommandFlags.None)
         {
-            return _dbData.MemoryHashes.GetMultiAsync(key, hashFields, missingKeys => Task.FromResult(_redisDb != null ? _redisDb.HashGet(key, missingKeys, flags) : new RedisValue[0]));
+            return _dbData.MemoryHashes.GetMultiAsync(
+                key,
+                hashFields,
+                missingKeys => _redisDb?.HashGetAsync(key, missingKeys, flags) ?? Task.FromResult(Array.Empty<RedisValue>()));
         }
 
         public Task<RedisValue> HashGetAsync(RedisKey key, RedisValue hashField, CommandFlags flags = CommandFlags.None)
@@ -581,13 +581,15 @@ namespace StackRedis.L1
         public Task<long> KeyDeleteAsync(RedisKey[] keys, CommandFlags flags = CommandFlags.None)
         {
             var removed = _dbData.MemoryCache.Remove(keys.Select(k => (string)k).ToArray());
-            return _redisDb == null ? Task.FromResult(removed) : _redisDb.KeyDeleteAsync(keys, flags);
+            _ = _redisDb?.KeyDeleteAsync(keys, flags);
+            return Task.FromResult(removed);
         }
 
         public Task<bool> KeyDeleteAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
             var result = _dbData.MemoryCache.Remove(new[] { (string)key });
-            return _redisDb == null ? Task.FromResult(result > 0) : _redisDb.KeyDeleteAsync(key, flags);
+            _ = _redisDb?.KeyDeleteAsync(key, flags);
+            return Task.FromResult(result > 0);
         }
 
         public byte[] KeyDump(RedisKey key, CommandFlags flags = CommandFlags.None)
@@ -604,10 +606,8 @@ namespace StackRedis.L1
 
         public bool KeyExists(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
-            if (_dbData.MemoryCache.ContainsKey(key)) return true;
-
-            //We need to check redis since we don't know what we *don't* have
-            return _redisDb != null && _redisDb.KeyExists(key, flags);
+            return _dbData.MemoryCache.ContainsKey(key)
+                || _redisDb?.KeyExists(key, flags) == true; //We need to check redis since we don't know what we *don't* have
         }
 
         public long KeyExists(RedisKey[] keys, CommandFlags flags = CommandFlags.None)
@@ -618,13 +618,8 @@ namespace StackRedis.L1
 
         public async Task<bool> KeyExistsAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
-            if (_dbData.MemoryCache.ContainsKey(key)) return true;
-
-            //There's no redis so we know assume the key doesn't exist in memory
-            if (_redisDb == null) return false;
-
-            //We need to check redis since we don't know what we *don't* have
-            return await _redisDb.KeyExistsAsync(key, flags);
+            return _dbData.MemoryCache.ContainsKey(key)
+                || _redisDb != null && await _redisDb.KeyExistsAsync(key, flags);
         }
 
         public Task<long> KeyExistsAsync(RedisKey[] keys, CommandFlags flags = CommandFlags.None)
@@ -653,8 +648,8 @@ namespace StackRedis.L1
 
         public Task<bool> KeyExpireAsync(RedisKey key, DateTime? expiry, CommandFlags flags = CommandFlags.None)
         {
-            var result = _dbData.MemoryCache.Expire(key, expiry);
-            return _redisDb != null ? _redisDb.KeyExpireAsync(key, expiry, flags) : Task.FromResult(result);
+            _ = _redisDb?.KeyExpireAsync(key, expiry, flags);
+            return Task.FromResult(_dbData.MemoryCache.Expire(key, expiry));
         }
 
         public Task<TimeSpan?> KeyIdleTimeAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
@@ -665,8 +660,8 @@ namespace StackRedis.L1
 
         public Task<bool> KeyExpireAsync(RedisKey key, TimeSpan? expiry, CommandFlags flags = CommandFlags.None)
         {
-            var result = _dbData.MemoryCache.Expire(key, expiry);
-            return _redisDb != null ? _redisDb.KeyExpireAsync(key, expiry, flags) : Task.FromResult(result);
+            _ = _redisDb?.KeyExpireAsync(key, expiry, flags);
+            return Task.FromResult(_dbData.MemoryCache.Expire(key, expiry));
         }
 
         public void KeyMigrate(RedisKey key, EndPoint toServer, int toDatabase = 0, int timeoutMilliseconds = 0, MigrateOptions migrateOptions = MigrateOptions.None, CommandFlags flags = CommandFlags.None)
@@ -681,7 +676,7 @@ namespace StackRedis.L1
 
         public bool KeyMove(RedisKey key, int database, CommandFlags flags = CommandFlags.None)
         {
-            return _redisDb == null || _redisDb.KeyMove(key, database, flags);
+            return _redisDb?.KeyMove(key, database, flags) != false;
         }
 
         public Task<bool> KeyMoveAsync(RedisKey key, int database, CommandFlags flags = CommandFlags.None)
@@ -719,14 +714,13 @@ namespace StackRedis.L1
             return _redisDb?.KeyRename(key, newKey, when, flags) ?? result;
         }
 
-        public async Task<bool> KeyRenameAsync(RedisKey key, RedisKey newKey, When when = When.Always, CommandFlags flags = CommandFlags.None)
+        public Task<bool> KeyRenameAsync(RedisKey key, RedisKey newKey, When when = When.Always, CommandFlags flags = CommandFlags.None)
         {
-            var result = _dbData.MemoryCache.RenameKey(key, newKey);
-            if (_redisDb == null) return result;
-            return await _redisDb.KeyRenameAsync(key, newKey, when, flags).ConfigureAwait(false);
+            _ = _redisDb?.KeyRenameAsync(key, newKey, when, flags).ConfigureAwait(false);
+            return Task.FromResult(_dbData.MemoryCache.RenameKey(key, newKey));
         }
         
-        public void KeyRestore(RedisKey key, byte[] value, TimeSpan? expiry = default(TimeSpan?), CommandFlags flags = CommandFlags.None)
+        public void KeyRestore(RedisKey key, byte[] value, TimeSpan? expiry = default, CommandFlags flags = CommandFlags.None)
         {
             if (_redisDb == null) throw new NotImplementedException();
             _redisDb.KeyRestore(key, value, expiry, flags);
@@ -1762,9 +1756,10 @@ namespace StackRedis.L1
         {
             if (_redisDb == null) throw new NotImplementedException();
 
-            _dbData.MemoryCache.Remove(new[] { (string)key }); //Invalidate the whole in-memory set because we can't update it properly
+            _ = _redisDb.SortedSetRemoveRangeByRankAsync(key, start, stop, flags);
 
-            return _redisDb.SortedSetRemoveRangeByRankAsync(key, start, stop, flags);
+            //Invalidate the whole in-memory set because we can't update it properly
+            return Task.FromResult(_dbData.MemoryCache.Remove(new[] { (string)key }));
         }
 
         public long SortedSetRemoveRangeByScore(RedisKey key, double start, double stop, Exclude exclude = Exclude.None, CommandFlags flags = CommandFlags.None)
@@ -1815,7 +1810,7 @@ namespace StackRedis.L1
             }
         }
 
-        public IEnumerable<SortedSetEntry> SortedSetScan(RedisKey key, RedisValue pattern = default(RedisValue), int pageSize = 10, long cursor = 0, int pageOffset = 0, CommandFlags flags = CommandFlags.None)
+        public IEnumerable<SortedSetEntry> SortedSetScan(RedisKey key, RedisValue pattern = default, int pageSize = 10, long cursor = 0, int pageOffset = 0, CommandFlags flags = CommandFlags.None)
         {
             if (_redisDb == null) throw new NotImplementedException();
 
@@ -2378,7 +2373,9 @@ namespace StackRedis.L1
         /// </summary>
         public async Task<RedisValue> StringGetAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
-            return await _dbData.MemoryStrings.GetFromMemoryAsync(key, () => _redisDb == null ? Task.FromResult(new RedisValue()) : _redisDb.StringGetAsync(key, flags)).ConfigureAwait(false);
+            return await _dbData.MemoryStrings.GetFromMemoryAsync(
+                key, () => _redisDb == null ? Task.FromResult(new RedisValue()) : _redisDb.StringGetAsync(key, flags)
+            ).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -2953,6 +2950,418 @@ namespace StackRedis.L1
         {
             if (_redisDb == null) throw new NotImplementedException();
             return _redisDb.KeyTouchAsync(keys, flags);
+        }
+
+        public GeoRadiusResult[] GeoSearch(RedisKey key, RedisValue member, GeoSearchShape shape, int count = -1, bool demandClosest = true, Order? order = null, GeoRadiusOptions options = GeoRadiusOptions.Default, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.GeoSearch(key, member, shape, count, demandClosest, order, options, flags);
+        }
+
+        public GeoRadiusResult[] GeoSearch(RedisKey key, double longitude, double latitude, GeoSearchShape shape, int count = -1, bool demandClosest = true, Order? order = null, GeoRadiusOptions options = GeoRadiusOptions.Default, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.GeoSearch(key, longitude, latitude, shape, count, demandClosest, order, options, flags);
+        }
+
+        public long GeoSearchAndStore(RedisKey sourceKey, RedisKey destinationKey, RedisValue member, GeoSearchShape shape, int count = -1, bool demandClosest = true, Order? order = null, bool storeDistances = false, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.GeoSearchAndStore(sourceKey, destinationKey, member, shape, count, demandClosest, order, storeDistances, flags);
+        }
+
+        public long GeoSearchAndStore(RedisKey sourceKey, RedisKey destinationKey, double longitude, double latitude, GeoSearchShape shape, int count = -1, bool demandClosest = true, Order? order = null, bool storeDistances = false, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.GeoSearchAndStore(sourceKey, destinationKey, longitude, latitude, shape, count, demandClosest, order, storeDistances, flags);
+        }
+
+        public RedisValue HashRandomField(RedisKey key, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.HashRandomField(key, flags);
+        }
+
+        public RedisValue[] HashRandomFields(RedisKey key, long count, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.HashRandomFields(key, count, flags);
+        }
+
+        public HashEntry[] HashRandomFieldsWithValues(RedisKey key, long count, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.HashRandomFieldsWithValues(key, count, flags);
+        }
+
+        public bool KeyCopy(RedisKey sourceKey, RedisKey destinationKey, int destinationDatabase = -1, bool replace = false, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.KeyCopy(sourceKey, destinationKey, destinationDatabase, replace, flags);
+        }
+
+        public string KeyEncoding(RedisKey key, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.KeyEncoding(key, flags);
+        }
+
+        public bool KeyExpire(RedisKey key, TimeSpan? expiry, ExpireWhen when = ExpireWhen.Always, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.KeyExpire(key, expiry, when, flags);
+        }
+
+        public bool KeyExpire(RedisKey key, DateTime? expiry, ExpireWhen when = ExpireWhen.Always, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.KeyExpire(key, expiry, when, flags);
+        }
+
+        public DateTime? KeyExpireTime(RedisKey key, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.KeyExpireTime(key, flags);
+        }
+
+        public long? KeyFrequency(RedisKey key, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.KeyFrequency(key, flags);
+        }
+
+        public long? KeyRefCount(RedisKey key, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.KeyRefCount(key, flags);
+        }
+
+        public ListPopResult ListLeftPop(RedisKey[] keys, long count, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.ListLeftPop(keys, count, flags);
+        }
+
+        public long ListPosition(RedisKey key, RedisValue element, long rank = 1, long maxLength = 0, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.ListPosition(key, element, rank, maxLength, flags);
+        }
+
+        public long[] ListPositions(RedisKey key, RedisValue element, long count, long rank = 1, long maxLength = 0, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.ListPositions(key, element, count, rank, maxLength, flags);
+        }
+
+        public RedisValue ListMove(RedisKey sourceKey, RedisKey destinationKey, ListSide sourceSide, ListSide destinationSide, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.ListMove(sourceKey, destinationKey, sourceSide, destinationSide, flags);
+        }
+
+        public ListPopResult ListRightPop(RedisKey[] keys, long count, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.ListRightPop(keys, count, flags);
+        }
+
+        public bool[] SetContains(RedisKey key, RedisValue[] values, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SetContains(key, values, flags);
+        }
+
+        public long SetIntersectionLength(RedisKey[] keys, long limit = 0, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SetIntersectionLength(keys, limit, flags);
+        }
+
+        public bool SortedSetAdd(RedisKey key, RedisValue member, double score, SortedSetWhen when = SortedSetWhen.Always, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetAdd(key, member, score, when, flags);
+        }
+
+        public long SortedSetAdd(RedisKey key, SortedSetEntry[] values, SortedSetWhen when = SortedSetWhen.Always, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetAdd(key, values, when, flags);
+        }
+
+        public RedisValue[] SortedSetCombine(SetOperation operation, RedisKey[] keys, double[] weights = null, Aggregate aggregate = Aggregate.Sum, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetCombine(operation, keys, weights, aggregate, flags);
+        }
+
+        public SortedSetEntry[] SortedSetCombineWithScores(SetOperation operation, RedisKey[] keys, double[] weights = null, Aggregate aggregate = Aggregate.Sum, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetCombineWithScores(operation, keys, weights, aggregate, flags);
+        }
+
+        public long SortedSetIntersectionLength(RedisKey[] keys, long limit = 0, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetIntersectionLength(keys, limit, flags);
+        }
+
+        public RedisValue SortedSetRandomMember(RedisKey key, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetRandomMember(key, flags);
+        }
+
+        public RedisValue[] SortedSetRandomMembers(RedisKey key, long count, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetRandomMembers(key, count, flags);
+        }
+
+        public SortedSetEntry[] SortedSetRandomMembersWithScores(RedisKey key, long count, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetRandomMembersWithScores(key, count, flags);
+        }
+
+        public double?[] SortedSetScores(RedisKey key, RedisValue[] members, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetScores(key, members, flags);
+        }
+
+        public SortedSetPopResult SortedSetPop(RedisKey[] keys, long count, Order order = Order.Ascending, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetPop(keys, count, order, flags);
+        }
+
+        public bool SortedSetUpdate(RedisKey key, RedisValue member, double score, SortedSetWhen when = SortedSetWhen.Always, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetUpdate(key, member, score, when, flags);
+        }
+
+        public long SortedSetUpdate(RedisKey key, SortedSetEntry[] values, SortedSetWhen when = SortedSetWhen.Always, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetUpdate(key, values, when, flags);
+        }
+
+        public StreamAutoClaimResult StreamAutoClaim(RedisKey key, RedisValue consumerGroup, RedisValue claimingConsumer, long minIdleTimeInMs, RedisValue startAtId, int? count = null, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.StreamAutoClaim(key, consumerGroup, claimingConsumer, minIdleTimeInMs, startAtId, count, flags);
+        }
+
+        public StreamAutoClaimIdsOnlyResult StreamAutoClaimIdsOnly(RedisKey key, RedisValue consumerGroup, RedisValue claimingConsumer, long minIdleTimeInMs, RedisValue startAtId, int? count = null, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.StreamAutoClaimIdsOnly(key, consumerGroup, claimingConsumer, minIdleTimeInMs, startAtId, count, flags);
+        }
+
+        public long StringBitCount(RedisKey key, long start = 0, long end = -1, StringIndexType indexType = StringIndexType.Byte, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.StringBitCount(key, start, end, indexType, flags);
+        }
+
+        public long StringBitPosition(RedisKey key, bool bit, long start = 0, long end = -1, StringIndexType indexType = StringIndexType.Byte, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.StringBitPosition(key, bit, start, end, indexType, flags);
+        }
+
+        public string StringLongestCommonSubsequence(RedisKey first, RedisKey second, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.StringLongestCommonSubsequence(first, second, flags);
+        }
+
+        public long StringLongestCommonSubsequenceLength(RedisKey first, RedisKey second, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.StringLongestCommonSubsequenceLength(first, second, flags);
+        }
+
+        public LCSMatchResult StringLongestCommonSubsequenceWithMatches(RedisKey first, RedisKey second, long minLength = 0, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.StringLongestCommonSubsequenceWithMatches(first, second, minLength, flags);
+        }
+
+        public bool StringSet(RedisKey key, RedisValue value, TimeSpan? expiry, When when)
+        {
+            return _redisDb.StringSet(key, value, expiry, when);
+        }
+
+        public Task<GeoRadiusResult[]> GeoSearchAsync(RedisKey key, RedisValue member, GeoSearchShape shape, int count = -1, bool demandClosest = true, Order? order = null, GeoRadiusOptions options = GeoRadiusOptions.Default, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.GeoSearchAsync(key, member, shape, count, demandClosest, order, options, flags);
+        }
+
+        public Task<GeoRadiusResult[]> GeoSearchAsync(RedisKey key, double longitude, double latitude, GeoSearchShape shape, int count = -1, bool demandClosest = true, Order? order = null, GeoRadiusOptions options = GeoRadiusOptions.Default, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.GeoSearchAsync(key, longitude, latitude, shape, count, demandClosest, order, options, flags);
+        }
+
+        public Task<long> GeoSearchAndStoreAsync(RedisKey sourceKey, RedisKey destinationKey, RedisValue member, GeoSearchShape shape, int count = -1, bool demandClosest = true, Order? order = null, bool storeDistances = false, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.GeoSearchAndStoreAsync(sourceKey, destinationKey, member, shape, count, demandClosest, order, storeDistances, flags);
+        }
+
+        public Task<long> GeoSearchAndStoreAsync(RedisKey sourceKey, RedisKey destinationKey, double longitude, double latitude, GeoSearchShape shape, int count = -1, bool demandClosest = true, Order? order = null, bool storeDistances = false, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.GeoSearchAndStoreAsync(sourceKey, destinationKey, longitude, latitude, shape, count, demandClosest, order, storeDistances, flags);
+        }
+
+        public Task<RedisValue> HashRandomFieldAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.HashRandomFieldAsync(key, flags);
+        }
+
+        public Task<RedisValue[]> HashRandomFieldsAsync(RedisKey key, long count, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.HashRandomFieldsAsync(key, count, flags);
+        }
+
+        public Task<HashEntry[]> HashRandomFieldsWithValuesAsync(RedisKey key, long count, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.HashRandomFieldsWithValuesAsync(key, count, flags);
+        }
+
+        public Task<bool> KeyCopyAsync(RedisKey sourceKey, RedisKey destinationKey, int destinationDatabase = -1, bool replace = false, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.KeyCopyAsync(sourceKey, destinationKey, destinationDatabase, replace, flags);
+        }
+
+        public Task<string> KeyEncodingAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.KeyEncodingAsync(key, flags);
+        }
+
+        public Task<bool> KeyExpireAsync(RedisKey key, TimeSpan? expiry, ExpireWhen when = ExpireWhen.Always, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.KeyExpireAsync(key, expiry, when, flags);
+        }
+
+        public Task<bool> KeyExpireAsync(RedisKey key, DateTime? expiry, ExpireWhen when = ExpireWhen.Always, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.KeyExpireAsync(key, expiry, when, flags);
+        }
+
+        public Task<DateTime?> KeyExpireTimeAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.KeyExpireTimeAsync(key, flags);
+        }
+
+        public Task<long?> KeyFrequencyAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.KeyFrequencyAsync(key, flags);
+        }
+
+        public Task<long?> KeyRefCountAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.KeyRefCountAsync(key, flags);
+        }
+
+        public Task<ListPopResult> ListLeftPopAsync(RedisKey[] keys, long count, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.ListLeftPopAsync(keys, count, flags);
+        }
+
+        public Task<long> ListPositionAsync(RedisKey key, RedisValue element, long rank = 1, long maxLength = 0, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.ListPositionAsync(key, element, rank, maxLength, flags);
+        }
+
+        public Task<long[]> ListPositionsAsync(RedisKey key, RedisValue element, long count, long rank = 1, long maxLength = 0, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.ListPositionsAsync(key, element, count, rank, maxLength, flags);
+        }
+
+        public Task<RedisValue> ListMoveAsync(RedisKey sourceKey, RedisKey destinationKey, ListSide sourceSide, ListSide destinationSide, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.ListMoveAsync(sourceKey, destinationKey, sourceSide, destinationSide, flags);
+        }
+
+        public Task<ListPopResult> ListRightPopAsync(RedisKey[] keys, long count, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.ListRightPopAsync(keys, count, flags);
+        }
+
+        public Task<bool[]> SetContainsAsync(RedisKey key, RedisValue[] values, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SetContainsAsync(key, values, flags);
+        }
+
+        public Task<long> SetIntersectionLengthAsync(RedisKey[] keys, long limit = 0, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SetIntersectionLengthAsync(keys, limit, flags);
+        }
+
+        public Task<bool> SortedSetAddAsync(RedisKey key, RedisValue member, double score, SortedSetWhen when = SortedSetWhen.Always, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetAddAsync(key, member, score, when, flags);
+        }
+
+        public Task<long> SortedSetAddAsync(RedisKey key, SortedSetEntry[] values, SortedSetWhen when = SortedSetWhen.Always, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetAddAsync(key, values, when, flags);
+        }
+
+        public Task<RedisValue[]> SortedSetCombineAsync(SetOperation operation, RedisKey[] keys, double[] weights = null, Aggregate aggregate = Aggregate.Sum, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetCombineAsync(operation, keys, weights, aggregate, flags);
+        }
+
+        public Task<SortedSetEntry[]> SortedSetCombineWithScoresAsync(SetOperation operation, RedisKey[] keys, double[] weights = null, Aggregate aggregate = Aggregate.Sum, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetCombineWithScoresAsync(operation, keys, weights, aggregate, flags);
+        }
+
+        public Task<long> SortedSetIntersectionLengthAsync(RedisKey[] keys, long limit = 0, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetIntersectionLengthAsync(keys, limit, flags);
+        }
+
+        public Task<RedisValue> SortedSetRandomMemberAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetRandomMemberAsync(key, flags);
+        }
+
+        public Task<RedisValue[]> SortedSetRandomMembersAsync(RedisKey key, long count, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetRandomMembersAsync(key, count, flags);
+        }
+
+        public Task<SortedSetEntry[]> SortedSetRandomMembersWithScoresAsync(RedisKey key, long count, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetRandomMembersWithScoresAsync(key, count, flags);
+        }
+
+        public Task<double?[]> SortedSetScoresAsync(RedisKey key, RedisValue[] members, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetScoresAsync(key, members, flags);
+        }
+
+        public Task<bool> SortedSetUpdateAsync(RedisKey key, RedisValue member, double score, SortedSetWhen when = SortedSetWhen.Always, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetUpdateAsync(key, member, score, when, flags);
+        }
+
+        public Task<long> SortedSetUpdateAsync(RedisKey key, SortedSetEntry[] values, SortedSetWhen when = SortedSetWhen.Always, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetUpdateAsync(key, values, when, flags);
+        }
+
+        public Task<SortedSetPopResult> SortedSetPopAsync(RedisKey[] keys, long count, Order order = Order.Ascending, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.SortedSetPopAsync(keys, count, order, flags);
+        }
+
+        public Task<StreamAutoClaimResult> StreamAutoClaimAsync(RedisKey key, RedisValue consumerGroup, RedisValue claimingConsumer, long minIdleTimeInMs, RedisValue startAtId, int? count = null, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.StreamAutoClaimAsync(key, consumerGroup, claimingConsumer, minIdleTimeInMs, startAtId, count, flags);
+        }
+
+        public Task<StreamAutoClaimIdsOnlyResult> StreamAutoClaimIdsOnlyAsync(RedisKey key, RedisValue consumerGroup, RedisValue claimingConsumer, long minIdleTimeInMs, RedisValue startAtId, int? count = null, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.StreamAutoClaimIdsOnlyAsync(key, consumerGroup, claimingConsumer, minIdleTimeInMs, startAtId, count, flags);
+        }
+
+        public Task<long> StringBitCountAsync(RedisKey key, long start = 0, long end = -1, StringIndexType indexType = StringIndexType.Byte, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.StringBitCountAsync(key, start, end, indexType, flags);
+        }
+
+        public Task<long> StringBitPositionAsync(RedisKey key, bool bit, long start = 0, long end = -1, StringIndexType indexType = StringIndexType.Byte, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.StringBitPositionAsync(key, bit, start, end, indexType, flags);
+        }
+
+        public Task<string> StringLongestCommonSubsequenceAsync(RedisKey first, RedisKey second, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.StringLongestCommonSubsequenceAsync(first, second, flags);
+        }
+
+        public Task<long> StringLongestCommonSubsequenceLengthAsync(RedisKey first, RedisKey second, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.StringLongestCommonSubsequenceLengthAsync(first, second, flags);
+        }
+
+        public Task<LCSMatchResult> StringLongestCommonSubsequenceWithMatchesAsync(RedisKey first, RedisKey second, long minLength = 0, CommandFlags flags = CommandFlags.None)
+        {
+            return _redisDb.StringLongestCommonSubsequenceWithMatchesAsync(first, second, minLength, flags);
+        }
+
+        public Task<bool> StringSetAsync(RedisKey key, RedisValue value, TimeSpan? expiry, When when)
+        {
+            _dbData.MemoryCache.Add(key, value, expiry, when);
+            _ = _redisDb.StringSetAsync(key, value, expiry, when);
+            return Task.FromResult(true);
         }
     }
 }
