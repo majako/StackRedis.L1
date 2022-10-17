@@ -66,24 +66,24 @@ namespace StackRedis.L1.Notifications
 
         public bool GeoAdd(RedisKey key, GeoEntry value, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.GeoAdd(key, value, flags);
             PublishEvent(key, $"geoadd:{value}");
-            return _redisDb.GeoAdd(key, value, flags);
+            return result;
         }
 
         public long GeoAdd(RedisKey key, GeoEntry[] values, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.GeoAdd(key, values, flags);
             foreach (var value in values)
-            {
                 PublishEvent(key, $"geoadd:{value}");
-            }
-
-            return _redisDb.GeoAdd(key, values, flags);
+            return result;
         }
 
         public bool GeoRemove(RedisKey key, RedisValue member, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.GeoRemove(key, member, flags);
             PublishEvent(key, $"zrem:{member}");
-            return _redisDb.GeoRemove(key, member, flags);
+            return result;
         }
 
         public double? GeoDistance(RedisKey key, RedisValue member1, RedisValue member2, GeoUnit unit = GeoUnit.Meters, CommandFlags flags = CommandFlags.None)
@@ -131,26 +131,26 @@ namespace StackRedis.L1.Notifications
             return _redisDb.GeoAddAsync(key, new GeoEntry(longitude, latitude, member), flags);
         }
 
-        public Task<bool> GeoAddAsync(RedisKey key, GeoEntry value, CommandFlags flags = CommandFlags.None)
+        public async Task<bool> GeoAddAsync(RedisKey key, GeoEntry value, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.GeoAddAsync(key, value, flags);
             PublishEvent(key, $"geoadd:{value}");
-            return _redisDb.GeoAddAsync(key, value, flags);
+            return result;
         }
 
-        public Task<long> GeoAddAsync(RedisKey key, GeoEntry[] values, CommandFlags flags = CommandFlags.None)
+        public async Task<long> GeoAddAsync(RedisKey key, GeoEntry[] values, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.GeoAddAsync(key, values, flags);
             foreach (var value in values)
-            {
                 PublishEvent(key, $"geoadd:{value}");
-            }
-
-            return _redisDb.GeoAddAsync(key, values, flags);
+            return result;
         }
 
-        public Task<bool> GeoRemoveAsync(RedisKey key, RedisValue member, CommandFlags flags = CommandFlags.None)
+        public async Task<bool> GeoRemoveAsync(RedisKey key, RedisValue member, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.GeoRemoveAsync(key, member, flags);
             PublishEvent(key, $"zrem:{member}");
-            return _redisDb.GeoRemoveAsync(key, member, flags);
+            return result;
         }
 
         public Task<double?> GeoDistanceAsync(RedisKey key, RedisValue member1, RedisValue member2, GeoUnit unit = GeoUnit.Meters, CommandFlags flags = CommandFlags.None)
@@ -190,26 +190,30 @@ namespace StackRedis.L1.Notifications
 
         public double HashDecrement(RedisKey key, RedisValue hashField, double value, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.HashDecrement(key, hashField, value, flags);
             PublishEvent(key, "hdecrbyfloat:" + hashField);
-            return _redisDb.HashDecrement(key, hashField, value, flags);
+            return result;
         }
 
         public long HashDecrement(RedisKey key, RedisValue hashField, long value = 1, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.HashDecrement(key, hashField, value, flags);
             PublishEvent(key, "hdecr:" + hashField);
-            return _redisDb.HashDecrement(key, hashField, value, flags);
+            return result;
         }
 
-        public Task<double> HashDecrementAsync(RedisKey key, RedisValue hashField, double value, CommandFlags flags = CommandFlags.None)
+        public async Task<double> HashDecrementAsync(RedisKey key, RedisValue hashField, double value, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.HashDecrementAsync(key, hashField, value, flags);
             PublishEvent(key, "hdecrbyfloat:" + hashField);
-            return _redisDb.HashDecrementAsync(key, hashField, value, flags);
+            return result;
         }
 
-        public Task<long> HashDecrementAsync(RedisKey key, RedisValue hashField, long value = 1, CommandFlags flags = CommandFlags.None)
+        public async Task<long> HashDecrementAsync(RedisKey key, RedisValue hashField, long value = 1, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.HashDecrementAsync(key, hashField, value, flags);
             PublishEvent(key, "hdecr:" + hashField);
-            return _redisDb.HashDecrementAsync(key, hashField, value, flags);
+            return result;
         }
 
         /// <summary>
@@ -217,12 +221,10 @@ namespace StackRedis.L1.Notifications
         /// </summary>
         public long HashDelete(RedisKey key, RedisValue[] hashFields, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.HashDelete(key, hashFields, flags);
             foreach (var hashField in hashFields)
-            {
                 PublishEvent(key, "hdel:" + hashField);
-            }
-
-            return _redisDb.HashDelete(key, hashFields, flags);
+            return result;
         }
 
         /// <summary>
@@ -230,30 +232,30 @@ namespace StackRedis.L1.Notifications
         /// </summary>
         public bool HashDelete(RedisKey key, RedisValue hashField, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.HashDelete(key, hashField, flags);
             PublishEvent(key, "hdel:" + hashField);
-            return _redisDb.HashDelete(key, hashField, flags);
+            return result;
         }
 
         /// <summary>
         /// Deletes hash key from memory and Redis.
         /// </summary>
-        public Task<long> HashDeleteAsync(RedisKey key, RedisValue[] hashFields, CommandFlags flags = CommandFlags.None)
+        public async Task<long> HashDeleteAsync(RedisKey key, RedisValue[] hashFields, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.HashDeleteAsync(key, hashFields, flags);
             foreach (var hashField in hashFields)
-            {
                 PublishEvent(key, "hdel:" + hashField);
-            }
-
-            return _redisDb.HashDeleteAsync(key, hashFields, flags);
+            return result;
         }
 
         /// <summary>
         /// Deletes hash key from memory and Redis.
         /// </summary>
-        public Task<bool> HashDeleteAsync(RedisKey key, RedisValue hashField, CommandFlags flags = CommandFlags.None)
+        public async Task<bool> HashDeleteAsync(RedisKey key, RedisValue hashField, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.HashDeleteAsync(key, hashField, flags);
             PublishEvent(key, "hdel:" + hashField);
-            return _redisDb.HashDeleteAsync(key, hashField, flags);
+            return result;
         }
 
         public bool HashExists(RedisKey key, RedisValue hashField, CommandFlags flags = CommandFlags.None)
@@ -308,26 +310,30 @@ namespace StackRedis.L1.Notifications
 
         public double HashIncrement(RedisKey key, RedisValue hashField, double value, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.HashIncrement(key, hashField, value, flags);
             PublishEvent(key, "hincrbyfloat:" + hashField);
-            return _redisDb.HashIncrement(key, hashField, value, flags);
+            return result;
         }
 
         public long HashIncrement(RedisKey key, RedisValue hashField, long value = 1, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.HashIncrement(key, hashField, value, flags);
             PublishEvent(key, "hincr:" + hashField);
-            return _redisDb.HashIncrement(key, hashField, value, flags);
+            return result;
         }
 
-        public Task<double> HashIncrementAsync(RedisKey key, RedisValue hashField, double value, CommandFlags flags = CommandFlags.None)
+        public async Task<double> HashIncrementAsync(RedisKey key, RedisValue hashField, double value, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.HashIncrementAsync(key, hashField, value, flags);
             PublishEvent(key, "hincrbyfloat:" + hashField);
-            return _redisDb.HashIncrementAsync(key, hashField, value, flags);
+            return result;
         }
 
-        public Task<long> HashIncrementAsync(RedisKey key, RedisValue hashField, long value = 1, CommandFlags flags = CommandFlags.None)
+        public async Task<long> HashIncrementAsync(RedisKey key, RedisValue hashField, long value = 1, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.HashIncrementAsync(key, hashField, value, flags);
             PublishEvent(key, "hincr:" + hashField);
-            return _redisDb.HashIncrementAsync(key, hashField, value, flags);
+            return result;
         }
 
         public RedisValue[] HashKeys(RedisKey key, CommandFlags flags = CommandFlags.None)
@@ -355,7 +361,7 @@ namespace StackRedis.L1.Notifications
             return _redisDb.HashScan(key, pattern, pageSize, flags);
         }
 
-        public IEnumerable<HashEntry> HashScan(RedisKey key, RedisValue pattern = default(RedisValue), int pageSize = 10, long cursor = 0, int pageOffset = 0, CommandFlags flags = CommandFlags.None)
+        public IEnumerable<HashEntry> HashScan(RedisKey key, RedisValue pattern = default, int pageSize = 10, long cursor = 0, int pageOffset = 0, CommandFlags flags = CommandFlags.None)
         {
             return _redisDb.HashScan(key, pattern, pageSize, cursor, pageOffset, flags);
         }
@@ -366,33 +372,29 @@ namespace StackRedis.L1.Notifications
         public void HashSet(RedisKey key, HashEntry[] hashFields, CommandFlags flags = CommandFlags.None)
         {
             _redisDb.HashSet(key, hashFields, flags);
-
             foreach (var entry in hashFields)
-            {
                 PublishEvent(key, "hset:" + entry.Name);
-            }
         }
 
         public bool HashSet(RedisKey key, RedisValue hashField, RedisValue value, When when = When.Always, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.HashSet(key, hashField, value, when, flags);
             PublishEvent(key, "hset:" + hashField);
-            return _redisDb.HashSet(key, hashField, value, when, flags);
+            return result;
         }
 
-        public Task HashSetAsync(RedisKey key, HashEntry[] hashFields, CommandFlags flags = CommandFlags.None)
+        public async Task HashSetAsync(RedisKey key, HashEntry[] hashFields, CommandFlags flags = CommandFlags.None)
         {
+            await _redisDb.HashSetAsync(key, hashFields, flags);
             foreach (var entry in hashFields)
-            {
                 PublishEvent(key, "hset:" + entry.Name);
-            }
-
-            return _redisDb.HashSetAsync(key, hashFields, flags);
         }
 
-        public Task<bool> HashSetAsync(RedisKey key, RedisValue hashField, RedisValue value, When when = When.Always, CommandFlags flags = CommandFlags.None)
+        public async Task<bool> HashSetAsync(RedisKey key, RedisValue hashField, RedisValue value, When when = When.Always, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.HashSetAsync(key, hashField, value, when, flags);
             PublishEvent(key, "hset:" + hashField);
-            return _redisDb.HashSetAsync(key, hashField, value, when, flags);
+            return result;
         }
 
         public RedisValue[] HashValues(RedisKey key, CommandFlags flags = CommandFlags.None)
@@ -465,12 +467,12 @@ namespace StackRedis.L1.Notifications
             return _redisDb.HyperLogLogMergeAsync(destination, first, second, flags);
         }
 
-        public EndPoint IdentifyEndpoint(RedisKey key = default(RedisKey), CommandFlags flags = CommandFlags.None)
+        public EndPoint IdentifyEndpoint(RedisKey key = default, CommandFlags flags = CommandFlags.None)
         {
             return _redisDb.IdentifyEndpoint(key, flags);
         }
 
-        public Task<EndPoint> IdentifyEndpointAsync(RedisKey key = default(RedisKey), CommandFlags flags = CommandFlags.None)
+        public Task<EndPoint> IdentifyEndpointAsync(RedisKey key = default, CommandFlags flags = CommandFlags.None)
         {
             return _redisDb.IdentifyEndpointAsync(key, flags);
         }
@@ -482,34 +484,32 @@ namespace StackRedis.L1.Notifications
 
         public long KeyDelete(RedisKey[] keys, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.KeyDelete(keys, flags);
             foreach (var key in keys)
-            {
                 PublishEvent(key, "del");
-            }
-
-            return _redisDb.KeyDelete(keys, flags);
+            return result;
         }
 
         public bool KeyDelete(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.KeyDelete(key, flags);
             PublishEvent(key, "del");
-            return _redisDb.KeyDelete(key, flags);
+            return result;
         }
 
-        public Task<long> KeyDeleteAsync(RedisKey[] keys, CommandFlags flags = CommandFlags.None)
+        public async Task<long> KeyDeleteAsync(RedisKey[] keys, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.KeyDeleteAsync(keys, flags);
             foreach (var key in keys)
-            {
                 PublishEvent(key, "del");
-            }
-
-            return _redisDb.KeyDeleteAsync(keys, flags);
+            return result;
         }
 
-        public Task<bool> KeyDeleteAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
+        public async Task<bool> KeyDeleteAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.KeyDeleteAsync(key, flags);
             PublishEvent(key, "del");
-            return _redisDb.KeyDeleteAsync(key, flags);
+            return result;
         }
 
         public byte[] KeyDump(RedisKey key, CommandFlags flags = CommandFlags.None)
@@ -544,8 +544,9 @@ namespace StackRedis.L1.Notifications
 
         public bool KeyExpire(RedisKey key, DateTime? expiry, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.KeyExpire(key, expiry, flags);
             PublishEvent(key, "expire");
-            return _redisDb.KeyExpire(key, expiry, flags);
+            return result;
         }
 
         public TimeSpan? KeyIdleTime(RedisKey key, CommandFlags flags = CommandFlags.None)
@@ -555,14 +556,16 @@ namespace StackRedis.L1.Notifications
 
         public bool KeyExpire(RedisKey key, TimeSpan? expiry, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.KeyExpire(key, expiry, flags);
             PublishEvent(key, "expire");
-            return _redisDb.KeyExpire(key, expiry, flags);
+            return result;
         }
 
-        public Task<bool> KeyExpireAsync(RedisKey key, DateTime? expiry, CommandFlags flags = CommandFlags.None)
+        public async Task<bool> KeyExpireAsync(RedisKey key, DateTime? expiry, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.KeyExpireAsync(key, expiry, flags);
             PublishEvent(key, "expire");
-            return _redisDb.KeyExpireAsync(key, expiry, flags);
+            return result;
         }
 
         public Task<TimeSpan?> KeyIdleTimeAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
@@ -570,10 +573,11 @@ namespace StackRedis.L1.Notifications
             return _redisDb.KeyIdleTimeAsync(key, flags);
         }
 
-        public Task<bool> KeyExpireAsync(RedisKey key, TimeSpan? expiry, CommandFlags flags = CommandFlags.None)
+        public async Task<bool> KeyExpireAsync(RedisKey key, TimeSpan? expiry, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.KeyExpireAsync(key, expiry, flags);
             PublishEvent(key, "expire");
-            return _redisDb.KeyExpireAsync(key, expiry, flags);
+            return result;
         }
 
         public void KeyMigrate(RedisKey key, EndPoint toServer, int toDatabase = 0, int timeoutMilliseconds = 0, MigrateOptions migrateOptions = MigrateOptions.None, CommandFlags flags = CommandFlags.None)
@@ -618,22 +622,24 @@ namespace StackRedis.L1.Notifications
 
         public bool KeyRename(RedisKey key, RedisKey newKey, When when = When.Always, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.KeyRename(key, newKey, when, flags);
             PublishEvent(key, "rename_key:" + (string)newKey);
-            return _redisDb.KeyRename(key, newKey, when, flags);
+            return result;
         }
 
-        public Task<bool> KeyRenameAsync(RedisKey key, RedisKey newKey, When when = When.Always, CommandFlags flags = CommandFlags.None)
+        public async Task<bool> KeyRenameAsync(RedisKey key, RedisKey newKey, When when = When.Always, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.KeyRenameAsync(key, newKey, when, flags);
             PublishEvent(key, "rename_key:" + (string)newKey);
-            return _redisDb.KeyRenameAsync(key, newKey, when, flags);
+            return result;
         }
 
-        public void KeyRestore(RedisKey key, byte[] value, TimeSpan? expiry = default(TimeSpan?), CommandFlags flags = CommandFlags.None)
+        public void KeyRestore(RedisKey key, byte[] value, TimeSpan? expiry = default, CommandFlags flags = CommandFlags.None)
         {
             _redisDb.KeyRestore(key, value, expiry, flags);
         }
 
-        public Task KeyRestoreAsync(RedisKey key, byte[] value, TimeSpan? expiry = default(TimeSpan?), CommandFlags flags = CommandFlags.None)
+        public Task KeyRestoreAsync(RedisKey key, byte[] value, TimeSpan? expiry = default, CommandFlags flags = CommandFlags.None)
         {
             return _redisDb.KeyRestoreAsync(key, value, expiry, flags);
         }
@@ -1036,10 +1042,7 @@ namespace StackRedis.L1.Notifications
         {
             var result = _redisDb.SetPop(key, flags);
             if (!result.IsNull)
-            {
                 PublishEvent(key, "srem:" + RedisValueHashCode.GetStableHashCode(result));
-            }
-
             return result;
         }
 
@@ -1047,10 +1050,7 @@ namespace StackRedis.L1.Notifications
         {
             var results = _redisDb.SetPop(key, count, flags);
             foreach (var result in results)
-            {
                 PublishEvent(key, "srem:" + RedisValueHashCode.GetStableHashCode(result));
-            }
-
             return results;
         }
 
@@ -1058,10 +1058,7 @@ namespace StackRedis.L1.Notifications
         {
             var result = await _redisDb.SetPopAsync(key, flags);
             if (!result.IsNull)
-            {
                 PublishEvent(key, "srem:" + RedisValueHashCode.GetStableHashCode(result));
-            }
-
             return result;
         }
 
@@ -1069,10 +1066,7 @@ namespace StackRedis.L1.Notifications
         {
             var results = await _redisDb.SetPopAsync(key, count, flags);
             foreach (var result in results)
-            {
                 PublishEvent(key, "srem:" + RedisValueHashCode.GetStableHashCode(result));
-            }
-
             return results;
         }
 
@@ -1099,33 +1093,30 @@ namespace StackRedis.L1.Notifications
         public long SetRemove(RedisKey key, RedisValue[] values, CommandFlags flags = CommandFlags.None)
         {
             foreach (var value in values)
-            {
                 PublishEvent(key, "srem:" + RedisValueHashCode.GetStableHashCode(value));
-            }
-
             return _redisDb.SetRemove(key, values, flags);
         }
 
         public bool SetRemove(RedisKey key, RedisValue value, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.SetRemove(key, value, flags);
             PublishEvent(key, "srem:" + RedisValueHashCode.GetStableHashCode(value));
-            return _redisDb.SetRemove(key, value, flags);
+            return result;
         }
 
-        public Task<long> SetRemoveAsync(RedisKey key, RedisValue[] values, CommandFlags flags = CommandFlags.None)
+        public async Task<long> SetRemoveAsync(RedisKey key, RedisValue[] values, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.SetRemoveAsync(key, values, flags);
             foreach (var value in values)
-            {
                 PublishEvent(key, "srem:" + RedisValueHashCode.GetStableHashCode(value));
-            }
-
-            return _redisDb.SetRemoveAsync(key, values, flags);
+            return result;
         }
 
-        public Task<bool> SetRemoveAsync(RedisKey key, RedisValue value, CommandFlags flags = CommandFlags.None)
+        public async Task<bool> SetRemoveAsync(RedisKey key, RedisValue value, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.SetRemoveAsync(key, value, flags);
             PublishEvent(key, "srem:" + RedisValueHashCode.GetStableHashCode(value));
-            return _redisDb.SetRemoveAsync(key, value, flags);
+            return result;
         }
 
         public IEnumerable<RedisValue> SetScan(RedisKey key, RedisValue pattern, int pageSize, CommandFlags flags)
@@ -1133,27 +1124,27 @@ namespace StackRedis.L1.Notifications
             return _redisDb.SetScan(key, pattern, pageSize, flags);
         }
 
-        public IEnumerable<RedisValue> SetScan(RedisKey key, RedisValue pattern = default(RedisValue), int pageSize = 10, long cursor = 0, int pageOffset = 0, CommandFlags flags = CommandFlags.None)
+        public IEnumerable<RedisValue> SetScan(RedisKey key, RedisValue pattern = default, int pageSize = 10, long cursor = 0, int pageOffset = 0, CommandFlags flags = CommandFlags.None)
         {
             return _redisDb.SetScan(key, pattern, pageSize, cursor, pageOffset, flags);
         }
 
-        public RedisValue[] Sort(RedisKey key, long skip = 0, long take = -1, Order order = Order.Ascending, SortType sortType = SortType.Numeric, RedisValue by = default(RedisValue), RedisValue[] get = null, CommandFlags flags = CommandFlags.None)
+        public RedisValue[] Sort(RedisKey key, long skip = 0, long take = -1, Order order = Order.Ascending, SortType sortType = SortType.Numeric, RedisValue by = default, RedisValue[] get = null, CommandFlags flags = CommandFlags.None)
         {
             return _redisDb.Sort(key, skip, take, order, sortType, by, get, flags);
         }
 
-        public long SortAndStore(RedisKey destination, RedisKey key, long skip = 0, long take = -1, Order order = Order.Ascending, SortType sortType = SortType.Numeric, RedisValue by = default(RedisValue), RedisValue[] get = null, CommandFlags flags = CommandFlags.None)
+        public long SortAndStore(RedisKey destination, RedisKey key, long skip = 0, long take = -1, Order order = Order.Ascending, SortType sortType = SortType.Numeric, RedisValue by = default, RedisValue[] get = null, CommandFlags flags = CommandFlags.None)
         {
             return _redisDb.SortAndStore(destination, key, skip, take, order, sortType, by, get, flags);
         }
 
-        public Task<long> SortAndStoreAsync(RedisKey destination, RedisKey key, long skip = 0, long take = -1, Order order = Order.Ascending, SortType sortType = SortType.Numeric, RedisValue by = default(RedisValue), RedisValue[] get = null, CommandFlags flags = CommandFlags.None)
+        public Task<long> SortAndStoreAsync(RedisKey destination, RedisKey key, long skip = 0, long take = -1, Order order = Order.Ascending, SortType sortType = SortType.Numeric, RedisValue by = default, RedisValue[] get = null, CommandFlags flags = CommandFlags.None)
         {
             return _redisDb.SortAndStoreAsync(destination, key, skip, take, order, sortType, by, get, flags);
         }
 
-        public Task<RedisValue[]> SortAsync(RedisKey key, long skip = 0, long take = -1, Order order = Order.Ascending, SortType sortType = SortType.Numeric, RedisValue by = default(RedisValue), RedisValue[] get = null, CommandFlags flags = CommandFlags.None)
+        public Task<RedisValue[]> SortAsync(RedisKey key, long skip = 0, long take = -1, Order order = Order.Ascending, SortType sortType = SortType.Numeric, RedisValue by = default, RedisValue[] get = null, CommandFlags flags = CommandFlags.None)
         {
             return _redisDb.SortAsync(key, skip, take, order, sortType, by, get, flags);
         }
@@ -1192,12 +1183,8 @@ namespace StackRedis.L1.Notifications
         public async Task<bool> SortedSetAddAsync(RedisKey key, RedisValue member, double score, When when = When.Always, CommandFlags flags = CommandFlags.None)
         {
             var result = await _redisDb.SortedSetAddAsync(key, member, score, when, flags);
-
             if (result)
-            {
                 PublishEvent(key, $"zadd:{RedisValueHashCode.GetStableHashCode(member)}");
-            }
-
             return result;
         }
 
@@ -1340,7 +1327,7 @@ namespace StackRedis.L1.Notifications
             return _redisDb.SortedSetRangeByScoreWithScoresAsync(key, start, stop, exclude, order, skip, take, flags);
         }
 
-        public RedisValue[] SortedSetRangeByValue(RedisKey key, RedisValue min = default(RedisValue), RedisValue max = default(RedisValue), Exclude exclude = Exclude.None, long skip = 0, long take = -1, CommandFlags flags = CommandFlags.None)
+        public RedisValue[] SortedSetRangeByValue(RedisKey key, RedisValue min = default, RedisValue max = default, Exclude exclude = Exclude.None, long skip = 0, long take = -1, CommandFlags flags = CommandFlags.None)
         {
             return _redisDb.SortedSetRangeByValue(key, min, max, exclude, skip, take, flags);
         }
@@ -1350,7 +1337,7 @@ namespace StackRedis.L1.Notifications
             return _redisDb.SortedSetRangeByValue(key, min, max, exclude, order, skip, take, flags);
         }
 
-        public Task<RedisValue[]> SortedSetRangeByValueAsync(RedisKey key, RedisValue min = default(RedisValue), RedisValue max = default(RedisValue), Exclude exclude = Exclude.None, long skip = 0, long take = -1, CommandFlags flags = CommandFlags.None)
+        public Task<RedisValue[]> SortedSetRangeByValueAsync(RedisKey key, RedisValue min = default, RedisValue max = default, Exclude exclude = Exclude.None, long skip = 0, long take = -1, CommandFlags flags = CommandFlags.None)
         {
             return _redisDb.SortedSetRangeByValueAsync(key, min, max, exclude, skip, take, flags);
         }
@@ -1374,9 +1361,7 @@ namespace StackRedis.L1.Notifications
         {
             var result = _redisDb.SortedSetRemove(key, members, flags);
             foreach (var value in members)
-            {
                 PublishEvent(key, $"zrem:{RedisValueHashCode.GetStableHashCode(value)}");
-            }
             return result;
         }
 
@@ -1390,11 +1375,8 @@ namespace StackRedis.L1.Notifications
         public async Task<long> SortedSetRemoveAsync(RedisKey key, RedisValue[] members, CommandFlags flags = CommandFlags.None)
         {
             var result = await _redisDb.SortedSetRemoveAsync(key, members, flags);
-
             foreach (var value in members)
-            {
                 PublishEvent(key, $"zrem:{RedisValueHashCode.GetStableHashCode(value)}");
-            }
             return result;
         }
 
@@ -1408,60 +1390,40 @@ namespace StackRedis.L1.Notifications
         public long SortedSetRemoveRangeByRank(RedisKey key, long start, long stop, CommandFlags flags = CommandFlags.None)
         {
             var result = _redisDb.SortedSetRemoveRangeByRank(key, start, stop, flags);
-
             if (result > 0)
-            {
                 PublishEvent(key, $"zremrangebyrank:{start}-{stop}");
-            }
-
             return result;
         }
 
         public async Task<long> SortedSetRemoveRangeByRankAsync(RedisKey key, long start, long stop, CommandFlags flags = CommandFlags.None)
         {
             var result = await _redisDb.SortedSetRemoveRangeByRankAsync(key, start, stop, flags);
-
             if (result > 0)
-            {
                 PublishEvent(key, $"zremrangebyrank:{start}-{stop}");
-            }
-
             return result;
         }
 
         public long SortedSetRemoveRangeByScore(RedisKey key, double start, double stop, Exclude exclude = Exclude.None, CommandFlags flags = CommandFlags.None)
         {
             var result = _redisDb.SortedSetRemoveRangeByScore(key, start, stop, exclude, flags);
-
             if (result > 0)
-            {
                 PublishEvent(key, $"zremrangebyscore:{start}-{stop}-{(int)exclude}");
-            }
-
             return result;
         }
 
         public async Task<long> SortedSetRemoveRangeByScoreAsync(RedisKey key, double start, double stop, Exclude exclude = Exclude.None, CommandFlags flags = CommandFlags.None)
         {
             var result = await _redisDb.SortedSetRemoveRangeByScoreAsync(key, start, stop, exclude, flags);
-
             if (result > 0)
-            {
                 PublishEvent(key, $"zremrangebyscore:{start}-{stop}-{(int)exclude}");
-            }
-
             return result;
         }
 
         public long SortedSetRemoveRangeByValue(RedisKey key, RedisValue min, RedisValue max, Exclude exclude = Exclude.None, CommandFlags flags = CommandFlags.None)
         {
             var result = _redisDb.SortedSetRemoveRangeByValue(key, min, max, exclude, flags);
-
             if (result > 0)
-            {
                 PublishEvent(key, "zremrangebylex");
-            }
-
             return result;
         }
 
@@ -1470,9 +1432,7 @@ namespace StackRedis.L1.Notifications
             var result = await _redisDb.SortedSetRemoveRangeByValueAsync(key, min, max, exclude, flags);
 
             if (result > 0)
-            {
                 PublishEvent(key, "zremrangebylex");
-            }
 
             return result;
         }
@@ -1482,7 +1442,7 @@ namespace StackRedis.L1.Notifications
             return _redisDb.SortedSetScan(key, pattern, pageSize, flags);
         }
 
-        public IEnumerable<SortedSetEntry> SortedSetScan(RedisKey key, RedisValue pattern = default(RedisValue), int pageSize = 10, long cursor = 0, int pageOffset = 0, CommandFlags flags = CommandFlags.None)
+        public IEnumerable<SortedSetEntry> SortedSetScan(RedisKey key, RedisValue pattern = default, int pageSize = 10, long cursor = 0, int pageOffset = 0, CommandFlags flags = CommandFlags.None)
         {
             return _redisDb.SortedSetScan(key, pattern, pageSize, cursor, pageOffset, flags);
         }
@@ -1749,14 +1709,16 @@ namespace StackRedis.L1.Notifications
 
         public long StringAppend(RedisKey key, RedisValue value, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.StringAppend(key, value, flags);
             PublishEvent(key, "append");
-            return _redisDb.StringAppend(key, value, flags);
+            return result;
         }
 
-        public Task<long> StringAppendAsync(RedisKey key, RedisValue value, CommandFlags flags = CommandFlags.None)
+        public async Task<long> StringAppendAsync(RedisKey key, RedisValue value, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.StringAppendAsync(key, value, flags);
             PublishEvent(key, "append");
-            return _redisDb.StringAppendAsync(key, value, flags);
+            return result;
         }
 
         public long StringBitCount(RedisKey key, long start = 0, long end = -1, CommandFlags flags = CommandFlags.None)
@@ -1774,7 +1736,7 @@ namespace StackRedis.L1.Notifications
             return _redisDb.StringBitOperation(operation, destination, keys, flags);
         }
 
-        public long StringBitOperation(Bitwise operation, RedisKey destination, RedisKey first, RedisKey second = default(RedisKey), CommandFlags flags = CommandFlags.None)
+        public long StringBitOperation(Bitwise operation, RedisKey destination, RedisKey first, RedisKey second = default, CommandFlags flags = CommandFlags.None)
         {
             return _redisDb.StringBitOperation(operation, destination, first, second, flags);
         }
@@ -1784,7 +1746,7 @@ namespace StackRedis.L1.Notifications
             return _redisDb.StringBitOperationAsync(operation, destination, keys, flags);
         }
 
-        public Task<long> StringBitOperationAsync(Bitwise operation, RedisKey destination, RedisKey first, RedisKey second = default(RedisKey), CommandFlags flags = CommandFlags.None)
+        public Task<long> StringBitOperationAsync(Bitwise operation, RedisKey destination, RedisKey first, RedisKey second = default, CommandFlags flags = CommandFlags.None)
         {
             return _redisDb.StringBitOperationAsync(operation, destination, first, second, flags);
         }
@@ -1801,26 +1763,30 @@ namespace StackRedis.L1.Notifications
 
         public double StringDecrement(RedisKey key, double value, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.StringDecrement(key, value, flags);
             PublishEvent(key, "decrbyfloat");
-            return _redisDb.StringDecrement(key, value, flags);
+            return result;
         }
 
         public long StringDecrement(RedisKey key, long value = 1, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.StringDecrement(key, value, flags);
             PublishEvent(key, "decrby");
-            return _redisDb.StringDecrement(key, value, flags);
+            return result;
         }
 
-        public Task<double> StringDecrementAsync(RedisKey key, double value, CommandFlags flags = CommandFlags.None)
+        public async Task<double> StringDecrementAsync(RedisKey key, double value, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.StringDecrementAsync(key, value, flags);
             PublishEvent(key, "decrbyfloat");
-            return _redisDb.StringDecrementAsync(key, value, flags);
+            return result;
         }
 
-        public Task<long> StringDecrementAsync(RedisKey key, long value = 1, CommandFlags flags = CommandFlags.None)
+        public async Task<long> StringDecrementAsync(RedisKey key, long value = 1, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.StringDecrementAsync(key, value, flags);
             PublishEvent(key, "decrby");
-            return _redisDb.StringDecrementAsync(key, value, flags);
+            return result;
         }
 
         public RedisValue[] StringGet(RedisKey[] keys, CommandFlags flags = CommandFlags.None)
@@ -1875,14 +1841,16 @@ namespace StackRedis.L1.Notifications
 
         public RedisValue StringGetSet(RedisKey key, RedisValue value, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.StringGetSet(key, value, flags);
             PublishEvent(key, "set");
-            return _redisDb.StringGetSet(key, value, flags);
+            return result;
         }
 
-        public Task<RedisValue> StringGetSetAsync(RedisKey key, RedisValue value, CommandFlags flags = CommandFlags.None)
+        public async Task<RedisValue> StringGetSetAsync(RedisKey key, RedisValue value, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.StringGetSetAsync(key, value, flags);
             PublishEvent(key, "set");
-            return _redisDb.StringGetSetAsync(key, value, flags);
+            return result;
         }
 
         public RedisValueWithExpiry StringGetWithExpiry(RedisKey key, CommandFlags flags = CommandFlags.None)
@@ -1897,26 +1865,30 @@ namespace StackRedis.L1.Notifications
 
         public double StringIncrement(RedisKey key, double value, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.StringIncrement(key, value, flags);
             PublishEvent(key, "incrbyfloat");
-            return _redisDb.StringIncrement(key, value, flags);
+            return result;
         }
 
         public long StringIncrement(RedisKey key, long value = 1, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.StringIncrement(key, value, flags);
             PublishEvent(key, "incrby");
-            return _redisDb.StringIncrement(key, value, flags);
+            return result;
         }
 
-        public Task<double> StringIncrementAsync(RedisKey key, double value, CommandFlags flags = CommandFlags.None)
+        public async Task<double> StringIncrementAsync(RedisKey key, double value, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.StringIncrementAsync(key, value, flags);
             PublishEvent(key, "incrbyfloat");
-            return _redisDb.StringIncrementAsync(key, value, flags);
+            return result;
         }
 
-        public Task<long> StringIncrementAsync(RedisKey key, long value = 1, CommandFlags flags = CommandFlags.None)
+        public async Task<long> StringIncrementAsync(RedisKey key, long value = 1, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.StringIncrementAsync(key, value, flags);
             PublishEvent(key, "incrby");
-            return _redisDb.StringIncrementAsync(key, value, flags);
+            return result;
         }
 
         public long StringLength(RedisKey key, CommandFlags flags = CommandFlags.None)
@@ -1931,57 +1903,60 @@ namespace StackRedis.L1.Notifications
 
         public bool StringSet(KeyValuePair<RedisKey, RedisValue>[] values, When when = When.Always, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.StringSet(values, when, flags);
             foreach (var kvp in values)
-            {
                 PublishEvent(kvp.Key, "set");
-            }
-            return _redisDb.StringSet(values, when, flags);
+            return result;
         }
 
-        public bool StringSet(RedisKey key, RedisValue value, TimeSpan? expiry = default(TimeSpan?), When when = When.Always, CommandFlags flags = CommandFlags.None)
+        public bool StringSet(RedisKey key, RedisValue value, TimeSpan? expiry = default, When when = When.Always, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.StringSet(key, value, expiry, when, flags);
             PublishEvent(key, "set");
-            return _redisDb.StringSet(key, value, expiry, when, flags);
+            return result;
         }
 
-        public Task<bool> StringSetAsync(KeyValuePair<RedisKey, RedisValue>[] values, When when = When.Always, CommandFlags flags = CommandFlags.None)
+        public async Task<bool> StringSetAsync(KeyValuePair<RedisKey, RedisValue>[] values, When when = When.Always, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.StringSetAsync(values, when, flags);
             foreach (var kvp in values)
-            {
                 PublishEvent(kvp.Key, "set");
-            }
-
-            return _redisDb.StringSetAsync(values, when, flags);
+            return result;
         }
 
-        public Task<bool> StringSetAsync(RedisKey key, RedisValue value, TimeSpan? expiry = default(TimeSpan?), When when = When.Always, CommandFlags flags = CommandFlags.None)
+        public async Task<bool> StringSetAsync(RedisKey key, RedisValue value, TimeSpan? expiry = default, When when = When.Always, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.StringSetAsync(key, value, expiry, when, flags);
             PublishEvent(key, "set");
-            return _redisDb.StringSetAsync(key, value, expiry, when, flags);
+            return result;
         }
 
         public bool StringSetBit(RedisKey key, long offset, bool bit, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.StringSetBit(key, offset, bit, flags);
             PublishEvent(key, "setbit");
-            return _redisDb.StringSetBit(key, offset, bit, flags);
+            return result;
         }
 
-        public Task<bool> StringSetBitAsync(RedisKey key, long offset, bool bit, CommandFlags flags = CommandFlags.None)
+        public async Task<bool> StringSetBitAsync(RedisKey key, long offset, bool bit, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.StringSetBitAsync(key, offset, bit, flags);
             PublishEvent(key, "setbit");
-            return _redisDb.StringSetBitAsync(key, offset, bit, flags);
+            return result;
         }
 
         public RedisValue StringSetRange(RedisKey key, long offset, RedisValue value, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.StringSetRange(key, offset, value, flags);
             PublishEvent(key, "setrange");
-            return _redisDb.StringSetRange(key, offset, value, flags);
+            return result;
         }
 
-        public Task<RedisValue> StringSetRangeAsync(RedisKey key, long offset, RedisValue value, CommandFlags flags = CommandFlags.None)
+        public async Task<RedisValue> StringSetRangeAsync(RedisKey key, long offset, RedisValue value, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.StringSetRangeAsync(key, offset, value, flags);
             PublishEvent(key, "setrange");
-            return _redisDb.StringSetRangeAsync(key, offset, value, flags);
+            return result;
         }
 
         public bool TryWait(Task task)
@@ -2061,26 +2036,30 @@ namespace StackRedis.L1.Notifications
 
         public RedisValue StringGetDelete(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.StringGetDelete(key, flags);
             PublishEvent(key, "getdel");
-            return _redisDb.StringGetDelete(key, flags);
+            return result;
         }
 
         public bool StringSet(RedisKey key, RedisValue value, TimeSpan? expiry = null, bool keepTtl = false, When when = When.Always, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.StringSet(key, value, expiry, keepTtl, when, flags);
             PublishEvent(key, "set");
-            return _redisDb.StringSet(key, value, expiry, keepTtl, when, flags);
+            return result;
         }
 
         public RedisValue StringSetAndGet(RedisKey key, RedisValue value, TimeSpan? expiry, When when, CommandFlags flags)
         {
+            var result = _redisDb.StringSetAndGet(key, value, expiry, when, flags);
             PublishEvent(key, "set");
-            return _redisDb.StringSetAndGet(key, value, expiry, when, flags);
+            return result;
         }
 
         public RedisValue StringSetAndGet(RedisKey key, RedisValue value, TimeSpan? expiry = null, bool keepTtl = false, When when = When.Always, CommandFlags flags = CommandFlags.None)
         {
+            var result = _redisDb.StringSetAndGet(key, value, expiry, keepTtl, when, flags);
             PublishEvent(key, "set");
-            return _redisDb.StringSetAndGet(key, value, expiry, keepTtl, when, flags);
+            return result;
         }
 
         public bool KeyTouch(RedisKey key, CommandFlags flags = CommandFlags.None)
@@ -2163,28 +2142,32 @@ namespace StackRedis.L1.Notifications
             return _redisDb.StringGetSetExpiryAsync(key, expiry, flags);
         }
 
-        public Task<RedisValue> StringGetDeleteAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
+        public async Task<RedisValue> StringGetDeleteAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.StringGetDeleteAsync(key, flags);
             PublishEvent(key, "getdel");
-            return _redisDb.StringGetDeleteAsync(key, flags);
+            return result;
         }
 
-        public Task<bool> StringSetAsync(RedisKey key, RedisValue value, TimeSpan? expiry = null, bool keepTtl = false, When when = When.Always, CommandFlags flags = CommandFlags.None)
+        public async Task<bool> StringSetAsync(RedisKey key, RedisValue value, TimeSpan? expiry = null, bool keepTtl = false, When when = When.Always, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.StringSetAsync(key, value, expiry, keepTtl, when, flags);
             PublishEvent(key, "set");
-            return _redisDb.StringSetAsync(key, value, expiry, keepTtl, when, flags);
+            return result;
         }
 
-        public Task<RedisValue> StringSetAndGetAsync(RedisKey key, RedisValue value, TimeSpan? expiry, When when, CommandFlags flags)
+        public async Task<RedisValue> StringSetAndGetAsync(RedisKey key, RedisValue value, TimeSpan? expiry, When when, CommandFlags flags)
         {
+            var result = await _redisDb.StringSetAndGetAsync(key, value, expiry, when, flags);
             PublishEvent(key, "set");
-            return _redisDb.StringSetAndGetAsync(key, value, expiry, when, flags);
+            return result;
         }
 
-        public Task<RedisValue> StringSetAndGetAsync(RedisKey key, RedisValue value, TimeSpan? expiry = null, bool keepTtl = false, When when = When.Always, CommandFlags flags = CommandFlags.None)
+        public async Task<RedisValue> StringSetAndGetAsync(RedisKey key, RedisValue value, TimeSpan? expiry = null, bool keepTtl = false, When when = When.Always, CommandFlags flags = CommandFlags.None)
         {
+            var result = await _redisDb.StringSetAndGetAsync(key, value, expiry, keepTtl, when, flags);
             PublishEvent(key, "set");
-            return _redisDb.StringSetAndGetAsync(key, value, expiry, keepTtl, when, flags);
+            return result;
         }
 
         public Task<bool> KeyTouchAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
@@ -2602,10 +2585,11 @@ namespace StackRedis.L1.Notifications
             return _redisDb.StringLongestCommonSubsequenceWithMatchesAsync(first, second, minLength, flags);
         }
 
-        public Task<bool> StringSetAsync(RedisKey key, RedisValue value, TimeSpan? expiry, When when)
+        public async Task<bool> StringSetAsync(RedisKey key, RedisValue value, TimeSpan? expiry, When when)
         {
+            var result = await _redisDb.StringSetAsync(key, value, expiry, when);
             PublishEvent(key, "set");
-            return _redisDb.StringSetAsync(key, value, expiry, when);
+            return result;
         }
     }
 }
