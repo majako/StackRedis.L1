@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
-using System.Linq;
 using System.Net;
-using System.Net.NetworkInformation;
 using System.Threading.Tasks;
 using StackExchange.Redis;
 
@@ -36,7 +32,7 @@ namespace StackRedis.L1.Notifications
             //Publish the event
             try
             {
-                _sub.Publish(channel, message, CommandFlags.FireAndForget);
+                _ = _sub.PublishAsync(channel, message, CommandFlags.FireAndForget);
             }
             catch
             {
@@ -2608,6 +2604,7 @@ namespace StackRedis.L1.Notifications
 
         public Task<bool> StringSetAsync(RedisKey key, RedisValue value, TimeSpan? expiry, When when)
         {
+            PublishEvent(key, "set");
             return _redisDb.StringSetAsync(key, value, expiry, when);
         }
     }
