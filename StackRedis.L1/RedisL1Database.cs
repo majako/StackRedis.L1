@@ -2473,7 +2473,7 @@ namespace StackRedis.L1
         /// </summary>
         public RedisValueWithExpiry StringGetWithExpiry(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
-            return _dbData.MemoryStrings.GetFromMemoryWithExpiry(key, () =>
+            return _dbData.MemoryStrings.GetFromMemoryWithExpiryAsync(key, () =>
             {
                 System.Diagnostics.Debug.WriteLine("Getting key from redis: " + (string)key);
 
@@ -2486,7 +2486,7 @@ namespace StackRedis.L1
         /// </summary>
         public Task<RedisValueWithExpiry> StringGetWithExpiryAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
-            return _dbData.MemoryStrings.GetFromMemoryWithExpiry(key, () =>  _redisDb == null ? Task.FromResult(new RedisValueWithExpiry()) : _redisDb.StringGetWithExpiryAsync(key, flags));
+            return _dbData.MemoryStrings.GetFromMemoryWithExpiryAsync(key, () =>  _redisDb == null ? Task.FromResult(new RedisValueWithExpiry()) : _redisDb.StringGetWithExpiryAsync(key, flags));
         }
 
         /// <summary>
