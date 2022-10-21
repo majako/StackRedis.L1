@@ -1,18 +1,16 @@
-﻿using StackExchange.Redis;
-using System;
-using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Threading.Tasks;
+using StackExchange.Redis;
 
 namespace StackRedis.L1.MemoryCache.Types
 {
     internal class MemoryStrings
     {
         private readonly ObjMemCache _memCache;
-        
+
         internal MemoryStrings(ObjMemCache memCache)
         {
             _memCache = memCache;
@@ -20,13 +18,13 @@ namespace StackRedis.L1.MemoryCache.Types
 
         internal long GetStringLength(string key)
         {
-            if(_memCache.ContainsKey(key))
+            if (_memCache.ContainsKey(key))
             {
                 var value = _memCache.Get<RedisValue>(key);
-                if(value.HasValue)
+                if (value.HasValue)
                 {
-                    RedisValue redisValue = value.Value;
-                    if(redisValue.HasValue)
+                    var redisValue = value.Value;
+                    if (redisValue.HasValue)
                     {
                         return ((string)redisValue).Length;
                     }
@@ -36,10 +34,10 @@ namespace StackRedis.L1.MemoryCache.Types
             return 0;
         }
 
-        internal RedisValueWithExpiry CreateRedisValueWithExpiry(RedisValue value, TimeSpan? expiry)
+        internal static RedisValueWithExpiry CreateRedisValueWithExpiry(RedisValue value, TimeSpan? expiry)
         {
             var result = new RedisValueWithExpiry();
-            
+
             //Box into object so that we can set properties on the same instance
             object oResult = result;
 
@@ -48,14 +46,14 @@ namespace StackRedis.L1.MemoryCache.Types
 
             //Unbox back to struct
             result = (RedisValueWithExpiry)oResult;
-            
+
             return result;
 
         }
 
         internal async Task<RedisValueWithExpiry> GetFromMemoryWithExpiryAsync(string key, Func<Task<RedisValueWithExpiry>> retrieval)
         {
-            ValOrRefNullable<RedisValue> cachedValue = _memCache.Get<RedisValue>(key);
+            var cachedValue = _memCache.Get<RedisValue>(key);
             if (cachedValue.HasValue)
             {
                 //If we know the expiry, then a trip to redis isn't necessary.
@@ -65,8 +63,8 @@ namespace StackRedis.L1.MemoryCache.Types
                     return CreateRedisValueWithExpiry(cachedValue.Value, expiry.Value);
                 }
             }
-            
-            RedisValueWithExpiry result = await retrieval();
+
+            var result = await retrieval();
 
             //Cache the value and expiry
             _memCache.Add(key, result.Value, result.Expiry, When.Always);
@@ -94,7 +92,7 @@ namespace StackRedis.L1.MemoryCache.Types
 
         internal RedisValue[] GetFromMemoryMulti(RedisKey[] keys, Func<RedisKey[], RedisValue[]> retrieval)
         {
-            if (!keys.Any()) return new RedisValue[0];
+            if (!keys.Any()) return Array.Empty<RedisValue>();
 
             var result = new RedisValue[keys.Length];
             var nonCachedIndices = new List<int>();
@@ -131,9 +129,7 @@ namespace StackRedis.L1.MemoryCache.Types
                 {
                     _memCache.Add(keys[originalIndex], redisResult, null, When.Always);
                 }
-                catch
-                {
-                }
+                catch { }
             }
 
             return result;
@@ -141,7 +137,7 @@ namespace StackRedis.L1.MemoryCache.Types
 
         internal async Task<RedisValue[]> GetFromMemoryMultiAsync(RedisKey[] keys, Func<RedisKey[], Task<RedisValue[]>> retrieval)
         {
-            if (!keys.Any()) return new RedisValue[0];
+            if (!keys.Any()) return Array.Empty<RedisValue>();
 
             var result = new RedisValue[keys.Length];
             var nonCachedIndices = new List<int>();
@@ -190,7 +186,7 @@ namespace StackRedis.L1.MemoryCache.Types
                 if (existingValue.HasValue)
                 {
                     //Get it and append it
-                    string newValue = existingValue.Value + value;
+                    var newValue = existingValue.Value + value;
                     _memCache.Update(key, (RedisValue)newValue);
 
                     return newValue.Length;
