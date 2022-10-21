@@ -2,9 +2,6 @@
 using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using StackRedis.L1.MemoryCache.Types;
 using StackRedis.L1.MemoryCache.Types.SortedSet;
 
@@ -12,10 +9,10 @@ namespace StackRedis.L1.KeyspaceNotifications
 {
     internal sealed class DatabaseRegister : IDisposable
     {
-        internal static DatabaseRegister Instance = new DatabaseRegister();
+        internal static DatabaseRegister instance = new();
 
-        private Dictionary<string, DatabaseInstanceData> dbData = new Dictionary<string, DatabaseInstanceData>();
-        private static readonly object _lockObj = new object();
+        private Dictionary<string, DatabaseInstanceData> _dbData = new();
+        private static readonly object _lockObj = new();
 
         private DatabaseRegister()
         { }
@@ -24,35 +21,35 @@ namespace StackRedis.L1.KeyspaceNotifications
         {
             lock (_lockObj)
             {
-                if (dbData.ContainsKey(dbIdentifier))
+                if (_dbData.ContainsKey(dbIdentifier))
                 {
-                    dbData.Remove(dbIdentifier);
+                    _dbData.Remove(dbIdentifier);
                 }
             }
         }
 
-        internal DatabaseInstanceData GetDatabaseInstanceData(string dbIdentifier, IDatabase redisDb)
+        internal DatabaseInstanceData GetDatabaseInstanceData(string dbIdentifier, IDatabase redisDb, string instance = null)
         {
             //Check if this db is already registered, and register it for notifications if necessary
             lock (_lockObj)
             {
-                if (!dbData.ContainsKey(dbIdentifier))
+                if (!_dbData.ContainsKey(dbIdentifier))
                 {
-                    dbData.Add(dbIdentifier, new DatabaseInstanceData(redisDb));
+                    _dbData.Add(dbIdentifier, new DatabaseInstanceData(redisDb, instance));
                 }
             }
 
-            return dbData[dbIdentifier];
+            return _dbData[dbIdentifier];
         }
 
         public void Dispose()
         {
-            foreach(var db in dbData)
+            foreach(var db in _dbData)
             {
                 db.Value.Dispose();
             }
 
-            dbData = new Dictionary<string, DatabaseInstanceData>();
+            _dbData = new Dictionary<string, DatabaseInstanceData>();
         }
     }
 
@@ -75,9 +72,11 @@ namespace StackRedis.L1.KeyspaceNotifications
         internal MemoryHashes MemoryHashes { get; private set; }
         internal MemorySets MemorySets { get; private set; }
         internal MemorySortedSet MemorySortedSets { get; private set; }
+        internal string Instance { get; private set; }
 
-        internal DatabaseInstanceData(IDatabase redisDb)
+        internal DatabaseInstanceData(IDatabase redisDb, string instance = null)
         {
+            Instance = instance;
             MemoryCache = new ObjMemCache();
             MemoryStrings = new MemoryStrings(MemoryCache);
             MemoryHashes = new MemoryHashes(MemoryCache);

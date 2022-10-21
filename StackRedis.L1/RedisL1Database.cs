@@ -1,9 +1,9 @@
-﻿using StackExchange.Redis;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Net;
+using System.Threading.Tasks;
+using StackExchange.Redis;
 using StackRedis.L1.KeyspaceNotifications;
 using StackRedis.L1.Notifications;
 
@@ -15,36 +15,34 @@ namespace StackRedis.L1
         private readonly DatabaseInstanceData _dbData;
 
         private readonly string _uniqueId;
-        
+
         /// <summary>
         /// Constructs a memory-caching layer for Redis IDatabase
         /// </summary>
         /// <param name="redisDb">IDatabase instance</param>
-        public RedisL1Database(IDatabase redisDb)
-            : this($"{redisDb.Multiplexer.Configuration}:db={redisDb.Database}", redisDb)
+        public RedisL1Database(IDatabase redisDb, string instance = null)
+            : this($"{redisDb.Multiplexer.Configuration}:db={redisDb.Database}", redisDb, instance)
         { }
 
         /// <summary>
         /// Constructs a memory-caching layer that simulates Redis.
         /// </summary>
         /// <param name="uniqueId">Unique string to represent this database instance.</param>
-        public RedisL1Database(string uniqueId)
-            : this(uniqueId, null)
+        public RedisL1Database(string uniqueId, string instance = null)
+            : this(uniqueId, null, instance)
         { }
 
-        private RedisL1Database(string uniqueId, IDatabase redisDb)
+        private RedisL1Database(string uniqueId, IDatabase redisDb, string instance = null)
         {
             _uniqueId = uniqueId;
 
             if (redisDb != null)
-            {
-                _redisDb = new NotificationDatabase(redisDb);
-            }
+                _redisDb = new NotificationDatabase(redisDb, instance);
 
             //Register for subscriptions and get the in-memory data store
-            _dbData = DatabaseRegister.Instance.GetDatabaseInstanceData(uniqueId, redisDb);
+            _dbData = DatabaseRegister.instance.GetDatabaseInstanceData(uniqueId, redisDb, instance);
         }
-        
+
         public void Flush()
         {
             _dbData.MemoryCache.Flush();
@@ -274,7 +272,7 @@ namespace StackRedis.L1
             var deleted = _dbData.MemoryHashes.Delete(key, new[] { hashField });
             return _redisDb != null ? await _redisDb.HashDeleteAsync(key, hashField, flags).ConfigureAwait(false) : (deleted > 0);
         }
-        
+
         public bool HashExists(RedisKey key, RedisValue hashField, CommandFlags flags = CommandFlags.None)
         {
             if (_dbData.MemoryHashes.Contains(key, hashField)) return true;
@@ -405,7 +403,7 @@ namespace StackRedis.L1
             if (_redisDb == null) throw new NotImplementedException();
             var result = _redisDb.HashScan(key, pattern, pageSize, flags);
 
-            foreach(var hashEntry in result)
+            foreach (var hashEntry in result)
             {
                 //Store in the hash
                 _dbData.MemoryHashes.Set(key, new[] { hashEntry });
@@ -719,7 +717,7 @@ namespace StackRedis.L1
             _ = _redisDb?.KeyRenameAsync(key, newKey, when, flags).ConfigureAwait(false);
             return Task.FromResult(_dbData.MemoryCache.RenameKey(key, newKey));
         }
-        
+
         public void KeyRestore(RedisKey key, byte[] value, TimeSpan? expiry = default, CommandFlags flags = CommandFlags.None)
         {
             if (_redisDb == null) throw new NotImplementedException();
@@ -1232,7 +1230,7 @@ namespace StackRedis.L1
 
             return result;
         }
-        
+
         public bool SetMove(RedisKey source, RedisKey destination, RedisValue value, CommandFlags flags = CommandFlags.None)
         {
             var inMemResult = _dbData.MemorySets.Move(source, destination, value);
@@ -1248,7 +1246,7 @@ namespace StackRedis.L1
         public RedisValue SetPop(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
             if (_redisDb == null) throw new NotImplementedException();
-            
+
             var value = _redisDb.SetPop(key, flags);
 
             //Remove it from memory
@@ -1353,7 +1351,7 @@ namespace StackRedis.L1
         {
             if (_redisDb == null) throw new NotImplementedException();
 
-            foreach(var value in _redisDb.SetScan(key, pattern, pageSize, flags))
+            foreach (var value in _redisDb.SetScan(key, pattern, pageSize, flags))
             {
                 //Save off the value
                 _dbData.MemorySets.Add(key, new[] { value });
@@ -1365,7 +1363,7 @@ namespace StackRedis.L1
         {
             if (_redisDb == null) throw new NotImplementedException();
 
-            foreach(var value in _redisDb.SetScan(key, pattern, pageSize, cursor, pageOffset, flags))
+            foreach (var value in _redisDb.SetScan(key, pattern, pageSize, cursor, pageOffset, flags))
             {
                 _dbData.MemorySets.Add(key, new[] { value });
                 yield return value;
@@ -1579,7 +1577,7 @@ namespace StackRedis.L1
 
             return result;
         }
-        
+
         //Does not cache the result since scores are not returned
         public RedisValue[] SortedSetRangeByScore(RedisKey key, double start = double.NegativeInfinity, double stop = double.PositiveInfinity, Exclude exclude = Exclude.None, Order order = Order.Ascending, long skip = 0, long take = -1, CommandFlags flags = CommandFlags.None)
         {
@@ -2313,7 +2311,7 @@ namespace StackRedis.L1
 
             return _redisDb.StringDecrementAsync(key, value, flags);
         }
-        
+
         /// <summary>
         /// Decrements a string in Redis, and removes the string from memory if present.
         /// </summary>
@@ -2473,7 +2471,7 @@ namespace StackRedis.L1
         /// </summary>
         public RedisValueWithExpiry StringGetWithExpiry(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
-            return _dbData.MemoryStrings.GetFromMemoryWithExpiry(key, () =>
+            return _dbData.MemoryStrings.GetFromMemoryWithExpiryAsync(key, () =>
             {
                 System.Diagnostics.Debug.WriteLine("Getting key from redis: " + (string)key);
 
@@ -2486,7 +2484,7 @@ namespace StackRedis.L1
         /// </summary>
         public Task<RedisValueWithExpiry> StringGetWithExpiryAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
-            return _dbData.MemoryStrings.GetFromMemoryWithExpiry(key, () =>  _redisDb == null ? Task.FromResult(new RedisValueWithExpiry()) : _redisDb.StringGetWithExpiryAsync(key, flags));
+            return _dbData.MemoryStrings.GetFromMemoryWithExpiryAsync(key, () => _redisDb == null ? Task.FromResult(new RedisValueWithExpiry()) : _redisDb.StringGetWithExpiryAsync(key, flags));
         }
 
         /// <summary>
@@ -2692,7 +2690,7 @@ namespace StackRedis.L1
 
         public void Dispose()
         {
-            DatabaseRegister.Instance.RemoveInstanceData(_uniqueId);
+            DatabaseRegister.instance.RemoveInstanceData(_uniqueId);
             _dbData.Dispose();
         }
 

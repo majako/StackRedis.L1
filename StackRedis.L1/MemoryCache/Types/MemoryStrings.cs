@@ -53,7 +53,7 @@ namespace StackRedis.L1.MemoryCache.Types
 
         }
 
-        internal async Task<RedisValueWithExpiry> GetFromMemoryWithExpiry(string key, Func<Task<RedisValueWithExpiry>> retrieval)
+        internal async Task<RedisValueWithExpiry> GetFromMemoryWithExpiryAsync(string key, Func<Task<RedisValueWithExpiry>> retrieval)
         {
             ValOrRefNullable<RedisValue> cachedValue = _memCache.Get<RedisValue>(key);
             if (cachedValue.HasValue)
