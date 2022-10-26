@@ -578,18 +578,16 @@ namespace StackRedis.L1
             return _redisDb?.KeyDelete(key, flags) ?? removed > 0;
         }
 
-        public Task<long> KeyDeleteAsync(RedisKey[] keys, CommandFlags flags = CommandFlags.None)
+        public async Task<long> KeyDeleteAsync(RedisKey[] keys, CommandFlags flags = CommandFlags.None)
         {
             var removed = _dbData.MemoryCache.Remove(keys.Select(k => (string)k).ToArray());
-            _ = _redisDb?.KeyDeleteAsync(keys, flags);
-            return Task.FromResult(removed);
+            return _redisDb != null ? await _redisDb.KeyDeleteAsync(keys, flags) : removed;
         }
 
-        public Task<bool> KeyDeleteAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
+        public async Task<bool> KeyDeleteAsync(RedisKey key, CommandFlags flags = CommandFlags.None)
         {
             var result = _dbData.MemoryCache.Remove(new[] { (string)key });
-            _ = _redisDb?.KeyDeleteAsync(key, flags);
-            return Task.FromResult(result > 0);
+            return _redisDb != null ? await _redisDb.KeyDeleteAsync(key, flags) : result > 0;
         }
 
         public byte[] KeyDump(RedisKey key, CommandFlags flags = CommandFlags.None)
