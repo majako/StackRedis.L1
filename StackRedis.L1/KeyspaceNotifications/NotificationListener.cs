@@ -8,12 +8,12 @@ namespace StackRedis.L1.KeyspaceNotifications
 {
     internal class NotificationListener : IDisposable
     {
-        private static readonly string _keyspace = "__keyspace@{0}__:";
-        private static readonly string _keyspaceDetail = "__keyspace_detailed@{0}__:";
+        private string _keyspace;
+        private string _keyspaceDetail;
 
         private DatabaseInstanceData _database;
         private readonly ISubscriber _subscriber;
-        private readonly int _databaseId;
+        private readonly IDatabase _redisDb;
 
         internal bool Paused { get; set; }
 
@@ -21,15 +21,28 @@ namespace StackRedis.L1.KeyspaceNotifications
         {
             var connection = redisDb.Multiplexer;
             _subscriber = connection.GetSubscriber();
+            _redisDb = redisDb;
+        }
 
-            _databaseId = redisDb.Database;
+        public void Dispose()
+        {
+            _subscriber.Unsubscribe(_keyspace + "*");
+            _subscriber.Unsubscribe(_keyspaceDetail + "*");
+        }
+
+        internal void HandleKeyspaceEvents(DatabaseInstanceData dbData)
+        {
+            _database = dbData;
+            var channel = $"{_redisDb.Database}__{dbData.Instance}__:";
+            _keyspace = $"__keyspace@{channel}";
+            _keyspaceDetail = $"__keyspace_detailed@{channel}";
 
             //Listen for standard redis keyspace events
-            _subscriber.Subscribe(string.Format(_keyspace, _databaseId) + "*", (channel, value) =>
+            _subscriber.Subscribe(_keyspace + "*", (channel, value) =>
             {
                 if (Paused) return;
 
-                var key = ((string)channel).Replace(string.Format(_keyspace, _databaseId), "");
+                var key = ((string)channel).Replace(_keyspace, "");
                 if (_database != null)
                 {
                     HandleKeyspaceEvent(_database, key, value);
@@ -37,7 +50,7 @@ namespace StackRedis.L1.KeyspaceNotifications
             });
 
             //Listen for advanced keyspace events
-            _subscriber.Subscribe(string.Format(_keyspaceDetail, _databaseId) + "*", (channel, value) =>
+            _subscriber.Subscribe(_keyspaceDetail + "*", (channel, value) =>
             {
                 if (Paused) return;
 
@@ -46,25 +59,14 @@ namespace StackRedis.L1.KeyspaceNotifications
                 //Only listen to events caused by other redis clients
                 if (machine == ProcessId.GetCurrent()) return;
 
-                var key = ((string)channel).Replace(string.Format(_keyspaceDetail, _databaseId), "");
+                var key = ((string)channel).Replace(_keyspaceDetail, "");
 
                 var eventType = ((string)value)[(machine.Length + 1)..];
                 if (_database != null)
                 {
-                    HandleKeyspaceDetailEvent(_database, redisDb, key, machine, eventType);
+                    HandleKeyspaceDetailEvent(_database, _redisDb, key, machine, eventType);
                 }
             });
-        }
-
-        public void Dispose()
-        {
-            _subscriber.Unsubscribe(string.Format(_keyspace, _databaseId) + "*");
-            _subscriber.Unsubscribe(string.Format(_keyspaceDetail, _databaseId) + "*");
-        }
-
-        internal void HandleKeyspaceEvents(DatabaseInstanceData dbData)
-        {
-            _database = dbData;
         }
 
         private static void HandleKeyspaceDetailEvent(DatabaseInstanceData dbData, IDatabase redisDb, string key, string machine, string eventType)

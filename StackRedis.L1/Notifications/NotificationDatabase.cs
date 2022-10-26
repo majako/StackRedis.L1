@@ -16,11 +16,11 @@ namespace StackRedis.L1.Notifications
         private readonly string _channelDb;
         private readonly string _process;
 
-        public NotificationDatabase(IDatabase redisDb, string processId = null)
+        public NotificationDatabase(IDatabase redisDb, string instance = null, string processId = null)
         {
             _redisDb = redisDb ?? throw new ArgumentNullException(nameof(redisDb));
             _sub = redisDb.Multiplexer.GetSubscriber();
-            _channelDb = "__keyspace_detailed@" + redisDb.Database + "__:";
+            _channelDb = $"__keyspace_detailed@{redisDb.Database}__{instance}__:";
             _process = processId ?? ProcessId.GetCurrent();
         }
 
